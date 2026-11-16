@@ -2,6 +2,10 @@
 name: Refresh NFL statistics
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-stats.yml'
   schedule:
     - cron: '20 10 * * *'
   workflow_dispatch:
