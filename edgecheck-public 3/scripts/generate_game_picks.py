@@ -41,7 +41,7 @@ def fixtures(now):
     today = now.astimezone(UK).date()
     found = {}
     # An evening US game can be after midnight in the UK.
-    for offset in (-1, 0, 1):
+    for offset in (-1, 0, 1, 2):
         for event in fetch_day(today + timedelta(days=offset)):
             try:
                 kickoff = datetime.fromisoformat(event["date"].replace("Z", "+00:00"))
