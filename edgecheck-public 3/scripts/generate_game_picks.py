@@ -45,7 +45,9 @@ def fixtures(now):
         for event in fetch_day(today + timedelta(days=offset)):
             try:
                 kickoff = datetime.fromisoformat(event["date"].replace("Z", "+00:00"))
-                if kickoff.astimezone(UK).date() != today:
+                # Only show fixtures with kickoffs in the next 36 hours.
+                # This includes US Monday-night games after UK midnight.
+                if not (now <= kickoff <= now + timedelta(hours=36)):
                     continue
                 teams = event["competitions"][0]["competitors"]
                 home = next(x for x in teams if x["homeAway"] == "home")
@@ -123,7 +125,7 @@ def main():
     tmp = OUTPUT.with_suffix(".tmp")
     tmp.write_text(json.dumps(output, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     tmp.replace(OUTPUT)
-    print(f"Wrote {len(games)} UK-date NFL fixtures to {OUTPUT}")
+    print(f"Wrote {len(games)} upcoming NFL fixtures to {OUTPUT}")
 
 if __name__ == "__main__":
     main()
