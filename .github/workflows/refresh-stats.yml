@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/refresh-stats.yml'
+      - 'edgecheck-public 3/scripts/generate_game_picks.py'
   schedule:
     - cron: '20 10 * * *'
   workflow_dispatch:
