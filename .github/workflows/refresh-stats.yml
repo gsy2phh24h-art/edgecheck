@@ -24,7 +24,6 @@ jobs:
         run: |
           mkdir -p "edgecheck-public 3/data"
           cp edgecheck-public/data/stats.json "edgecheck-public 3/data/stats.json"
-
       - name: Save statistics
         run: |
           git config user.name "github-actions[bot]"
