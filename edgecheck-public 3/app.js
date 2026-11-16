@@ -40,6 +40,7 @@ async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
     ${picks.length?`<div class="match-picks">${picks.map(p=>`<div class="match-pick"><div><strong>${escapeHtml(p.player)}</strong><small>${escapeHtml(p.team)} · ${escapeHtml(p.label)}</small><small>Against ${escapeHtml(p.opponent||'opponent')} · roster checked</small></div><div class="pick-rate">${p.hits}/${p.sample}<small>Last 5 hit</small></div></div>`).join('')}</div>`:'<p class="no-picks">'+(before?'No roster-verified suggestions available for this matchup.':'Pregame suggestions are hidden once kickoff has passed.')+'</p>'}
     <p class="no-picks"><small>${escapeHtml(g.verification_note||'Roster and availability checks are not available.')}</small></p>
     ${g.defensive_context?`<details class="match-context"><summary>Opponent defence context (estimated)</summary>${Object.entries(g.defensive_context).map(([team,s])=>s?`<p><strong>${escapeHtml(team)}</strong> · Pass yards conceded/game: ${s.pass_yards_allowed_avg} · Rush yards conceded/game: ${s.rush_yards_allowed_avg} · ${s.sample_games} games</p>`:'').join('')}<small>${escapeHtml(g.context_note||'Approximations from weekly game logs, not official defensive statistics.')}</small></details>`:''}
+    ${before && picks.length ? `<div class="compare-actions"><button class="compare-btn" type="button" data-compare-game="${escapeHtml(String(g.id))}">Compare UK bookmaker prices</button><div id="bookmaker-results-${escapeHtml(String(g.id))}" class="bookmaker-results" aria-live="polite"></div></div>` : ''}
     <a href="https://www.bet365.com/" class="check-bookmaker" target="_blank" rel="noopener noreferrer">Check available markets at bet365 ↗</a><p class="no-picks"><a href="https://www.nfl.com/injuries/" target="_blank" rel="noopener noreferrer">Check official NFL injury reports ↗</a> · Confirm line-ups and market availability before betting.</p>
     </article>`}).join('');
  }catch(e){$('picks-date').textContent='No current suggestions';$('picks-updated').textContent='';out.innerHTML='<div class="value-empty"><strong>Today’s suggestions are not available yet.</strong><p>Game picks will appear automatically after the statistics and matchup data have been imported. No unverified recommendations are shown.</p></div>';}}
@@ -77,3 +78,54 @@ function renderOddsBoard(){
 async function loadOddsBoard(){try{const r=await fetch('/data/verified-odds.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('Odds not published');const j=await r.json();oddsFeed=j;}catch{oddsFeed=null;}renderOddsBoard();}
 document.querySelectorAll('[data-odds-tier]').forEach(b=>b.addEventListener('click',()=>{activeOddsTier=Number(b.dataset.oddsTier);renderOddsBoard()}));
 loadOddsBoard();
+
+
+// Compare exact quoted player props across available UK bookmakers.
+document.addEventListener('click', async event => {
+  const btn = event.target.closest('[data-compare-game]');
+  if (!btn) return;
+  const id = btn.getAttribute('data-compare-game');
+  if (!/^\d{7,15}$/.test(id)) return;
+  const panel = document.getElementById('bookmaker-results-' + id);
+  if (!panel) return;
+  btn.disabled = true;
+  panel.textContent = 'Checking available UK bookmaker prices…';
+  try {
+    const response = await fetch('/api/compare-odds?game=' + encodeURIComponent(id));
+    if (!response.ok) throw Error('No response');
+    const data = await response.json();
+    if (data.status !== 'ok') {
+      const messages = {
+        not_configured: 'Live odds are not connected yet. An authorised odds API subscription is required.',
+        no_event_coverage: 'No UK bookmaker player-prop prices were returned for this matchup.',
+        not_upcoming: 'Pre-match prices are no longer available for this fixture.',
+        provider_unavailable: 'Price provider temporarily unavailable. Check prices directly with bookmakers.',
+        no_selections: 'No suitable player selections available for comparison.'
+      };
+      panel.textContent = messages[data.status] || 'No verified prices available right now.';
+      return;
+    }
+    const comparisons = Array.isArray(data.comparisons) ? data.comparisons : [];
+    panel.innerHTML = comparisons.map(item => {
+      const quotes = Array.isArray(item.quotes) ? item.quotes : [];
+      return `<div class="bookmaker-line"><strong>${escapeHtml(item.player)}: ${escapeHtml(item.label)}</strong>
+        ${quotes.length ? quotes.slice(0, 4).map((q, i) => {
+          let link = '';
+          if (q.url) {
+            const label = q.link_type === 'selection' ? 'Open selection' :
+              q.link_type === 'market' ? 'Open market' : 'Open game';
+            link = `<a href="${escapeHtml(q.url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
+          }
+          return `<div class="bookmaker-quote">${i === 0 ? '<span class="best-quote">Best price</span>' : ''}
+            <span>${escapeHtml(q.bookmaker)}</span><b>${Number(q.odds).toFixed(2)}</b>${link}
+            <small>Checked ${escapeHtml(new Date(q.checked_at).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}))} UK</small>
+          </div>`;
+        }).join('') : '<p class="no-picks">No exact UK price verified for this player and target.</p>'}
+      </div>`;
+    }).join('') + '<p class="no-picks">Prices may change. Links are only as specific as the bookmaker permits. Confirm the selection before betting.</p>';
+  } catch {
+    panel.textContent = 'Unable to retrieve prices. Please try again later.';
+  } finally {
+    btn.disabled = false;
+  }
+});
