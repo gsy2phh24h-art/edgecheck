@@ -9,6 +9,7 @@ on:
       - 'edgecheck-public 3/scripts/generate_game_picks.py'
   schedule:
     - cron: '20 10 * * *'
+    - cron: '20 19 * * *'
   workflow_dispatch:
 
 permissions:
