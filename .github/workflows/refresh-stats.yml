@@ -37,6 +37,10 @@ jobs:
           mkdir -p "edgecheck-public 3/data"
           cp edgecheck-public/data/stats.json "edgecheck-public 3/data/stats.json"
 
+      - name: Generate upcoming NFL game suggestions
+        run: |
+          python "edgecheck-public 3/scripts/generate_game_picks.py"
+
       - name: Save and publish statistics
         run: |
           git config user.name "github-actions[bot]"
@@ -44,6 +48,7 @@ jobs:
 
           git add edgecheck-public/data/stats.json
           git add "edgecheck-public 3/data/stats.json"
+          git add "edgecheck-public 3/data/game-picks.json"
 
           if ! git diff --cached --quiet; then
             git commit -m "Update NFL stats"
