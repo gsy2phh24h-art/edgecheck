@@ -9,25 +9,46 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: nfl-stats-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Download NFL statistics
-        run: python edgecheck-public/scripts/update_stats.py
-      
+        run: |
+          python edgecheck-public/scripts/update_stats.py
+
       - name: Copy statistics to live website
         run: |
           mkdir -p "edgecheck-public 3/data"
           cp edgecheck-public/data/stats.json "edgecheck-public 3/data/stats.json"
-      - name: Save statistics
+
+      - name: Save and publish statistics
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add edgecheck-public/data/stats.json
           git add "edgecheck-public 3/data/stats.json"
-          git diff --cached --quiet || (git commit -m "Update NFL stats" && git push)
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update NFL stats"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          else
+            echo "No statistics changes to publish."
+          fi
