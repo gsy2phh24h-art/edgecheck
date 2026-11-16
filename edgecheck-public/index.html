@@ -9,5 +9,29 @@
 <div class="windowrow"><span>RECENT GAME WINDOW</span><div class="segment" role="group" aria-label="Game window"><button class="on" data-window="5">L5</button><button data-window="10">L10</button><button data-window="20">L20</button></div></div>
 <div class="result" id="result"><div class="empty">Select a player to analyse a prop.</div></div><button id="add-leg" class="primary" disabled>+ Add to my bet slip</button><div class="footnote">A game counts as a hit when the recorded stat meets or exceeds the target. Only games with a published player stat line are counted. Past results do not predict future results.</div>
 </section><aside class="panel slip"><div class="sectionhead"><div><span class="overline">02 / YOUR PICKS</span><h2>Bet slip <span id="slip-count" class="count">0</span></h2></div><button class="textbtn" id="clear-slip">Clear all</button></div><div id="legs"><div class="slip-empty"><span>▤</span><strong>Your slip is empty</strong><p>Research a player, then add a selection to start comparing legs.</p></div></div><div class="slip-footer"><div class="two"><div><label class="fieldlabel" for="stake">STAKE (£)</label><input id="stake" type="number" min="0" step="0.01" value="10"></div><div><label class="fieldlabel" for="decimal-odds">TOTAL DECIMAL ODDS</label><input id="decimal-odds" type="number" min="1.01" step="0.01" placeholder="e.g. 7.25"></div></div><div class="rowitem"><span>Potential total return</span><strong id="returns">—</strong></div><div class="rowitem"><span>Bookmaker implied probability</span><strong id="implied">—</strong></div><div class="rowitem"><span>Weakest recent leg</span><strong id="weakest">—</strong></div><button class="outline" id="copy-slip">Copy slip summary</button><p class="footnote">Historical hit rates are displayed per leg. Legs are correlated and cannot safely be multiplied to estimate accumulator success. Odds are entered manually and are not live bookmaker quotes.</p></div></aside></div>
+
+<section class="panel gamepicks" id="game-picks" aria-labelledby="game-picks-title">
+  <div class="sectionhead"><div><span class="overline">03 / GAME PICKS</span><h2 id="game-picks-title">Suggested bets for each NFL game</h2></div><span class="tag">TODAY</span></div>
+  <p class="value-intro">Choose a matchup to see player prop ideas picked from recent performances. Each suggestion shows how often the player met that target in their last five games. These are statistical ideas, not verified betting value or guaranteed winners.</p>
+  <div class="gamepicks-toolbar"><span id="picks-date">Checking today's schedule…</span><span id="picks-updated"></span></div>
+  <div id="game-picks-list" class="game-picks-list" aria-live="polite"><div class="value-empty">Loading today's NFL matchups…</div></div>
+  <p class="footnote">Suggestions are automatically generated from recent game logs when the daily updater runs. Odds are not shown until a licensed feed is available. Check injuries, line-ups and bookmaker markets before acting. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
+</section>
+
+
+<section class="panel tier-board" id="odds-picks" aria-labelledby="odds-picks-title">
+  <div class="sectionhead"><div><span class="overline">04 / ODDS PICKS</span><h2 id="odds-picks-title">Suggested bets by decimal odds</h2></div><span class="tag">PRICE-CHECKED ONLY</span></div>
+  <p class="value-intro">Choose an odds range to see independently sourced pre-match suggestions for today's NFL games. Prices must come from a permitted odds provider, with a recorded source and recent check time. Bet365 may offer a different price.</p>
+  <div class="odds-tier-tabs" role="group" aria-label="Choose decimal odds range">
+    <button class="odds-tier active" data-odds-tier="2" aria-pressed="true">2.00 <small>around evens</small></button>
+    <button class="odds-tier" data-odds-tier="3" aria-pressed="false">3.00 <small>around 2/1</small></button>
+    <button class="odds-tier" data-odds-tier="4" aria-pressed="false">4.00 <small>around 3/1</small></button>
+    <button class="odds-tier" data-odds-tier="6" aria-pressed="false">6.00 <small>around 5/1</small></button>
+  </div>
+  <div class="odds-board-meta"><span id="odds-board-date">Checking today's odds…</span><span id="odds-board-count">0 available</span></div>
+  <div id="odds-board-results" class="odds-board-results" aria-live="polite"><div class="value-empty">Checking sourced offers…</div></div>
+  <p class="footnote">Each price is a time-stamped quote, never a guarantee that the bookmaker will offer it at checkout. Combos need verified *combined* odds from the source; multiplying individual markets is not a valid substitute for a bookmaker bet-builder quote. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
+</section>
+
 <section class="about"><div class="overline">BUILT FOR BETTER RESEARCH</div><h2>Every leg. Actual game logs.</h2><div class="features"><div><span>◫</span><strong>Recent form</strong><p>Review each player's last 5, 10 or 20 recorded games.</p></div><div><span>◉</span><strong>Target hit rates</strong><p>See how often a player reaches your specific line, not a generic average.</p></div><div><span>▤</span><strong>Compare selections</strong><p>Build a multi-leg slip and spot the weakest recent performers.</p></div></div></section>
 <footer><strong>EDGE<span class="accent">CHECK</span></strong><span>Independent NFL research tool. Not affiliated with the NFL or any bookmaker. 18+ · Gamble responsibly · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a></span><span>Data: <a href="https://github.com/nflverse/nflverse-data" target="_blank" rel="noopener">nflverse</a></span></footer></main><script src="/app.js" defer></script></body></html>
