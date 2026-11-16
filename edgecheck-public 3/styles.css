@@ -9,3 +9,18 @@
 /* Responsive decimal-odds board */
 .tier-board{margin-top:24px}.odds-tier-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:20px 0}.odds-tier{border:1px solid #385563;background:#0a202b;color:#eaf8f5;border-radius:12px;padding:13px 5px;font-size:23px;font-weight:850}.odds-tier small{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-top:3px}.odds-tier.active{background:#174b3c;border-color:var(--green);color:var(--green)}.odds-board-meta,.odds-offer-header,.odds-verified{display:flex;justify-content:space-between;gap:12px;align-items:center}.odds-board-meta{font-size:12px;color:var(--muted);padding:10px 0 17px}.odds-board-results{display:grid;gap:14px}.odds-offer{background:#0b202a;border:1px solid #37525d;padding:19px;border-radius:14px}.odds-offer h3{margin:7px 0 0;font-size:18px}.bigodds{font-size:30px;color:var(--green)}.odds-offer ul{padding-left:20px;color:#d7e7e7;line-height:1.8}.odds-verified{color:#9cb4ba;font-size:11px;flex-wrap:wrap;padding:10px 0;border-top:1px solid #304653}.tier-board .value-empty{border:1px dashed #35545c;background:#10232c;border-radius:12px;padding:25px;color:#b4c7ce}.tier-board .value-empty strong{display:block;color:#f1fcfc}.tier-board .check-bookmaker{display:inline-block;margin-top:13px}.tier-board .value-intro{color:#a7bcc3;line-height:1.6}
 @media(max-width:600px){.odds-tier-tabs{grid-template-columns:repeat(2,1fr)}.odds-offer-header{align-items:flex-start}.odds-board-meta{flex-wrap:wrap}.odds-tier{font-size:22px}}
+
+
+/* UK bookmaker comparison */
+.compare-actions{margin:18px 0 12px}
+.compare-btn{display:block;width:100%;padding:13px 15px;border:1px solid #6cffa9;background:#173e32;color:#b9ffd6;font-weight:750;border-radius:10px;text-align:center}
+.compare-btn:hover{background:#20543e}
+.bookmaker-results{margin-top:12px;color:#b7c9ce;font-size:13px}
+.bookmaker-line{padding:12px 0;border-top:1px solid #30505a}
+.bookmaker-line>strong{display:block;color:#f0f9fa;margin-bottom:8px}
+.bookmaker-quote{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:7px 0;border-bottom:1px solid #23404b}
+.bookmaker-quote b{color:#6cffa9;font-size:16px}
+.bookmaker-quote a{color:#6cffa9;text-decoration:underline;margin-left:auto}
+.bookmaker-quote small{color:#9cb0b7}
+.best-quote{color:#0d2b1e;background:#a1ffd0;border-radius:5px;padding:3px 6px;font-weight:800;font-size:10px}
+@media(max-width:600px){.bookmaker-quote{gap:6px 10px}.bookmaker-quote a{margin-left:0}.bookmaker-quote small{width:100%}}
