@@ -18,14 +18,14 @@ UK = ZoneInfo("Europe/London")
 # ESPN and nflverse use slightly different abbreviations for some teams.
 ALIASES = {"WSH": "WAS", "LAR": "LA", "JAX": "JAC", "NYJ": "NYJ", "NYG": "NYG"}
 MARKETS = {
-    "QB": [("passing_yards", (150, 175, 200, 225, 250), "passing yards"),
-           ("completions", (12, 15, 18, 20), "completions")],
-    "RB": [("rushing_yards", (20, 30, 40, 50, 60, 70), "rushing yards"),
-           ("receptions", (2, 3, 4), "receptions")],
-    "WR": [("receiving_yards", (20, 30, 40, 50, 60, 70), "receiving yards"),
-           ("receptions", (2, 3, 4, 5), "receptions")],
-    "TE": [("receiving_yards", (15, 20, 30, 40, 50), "receiving yards"),
-           ("receptions", (2, 3, 4), "receptions")],
+    "QB": [("passing_yards", (175, 200, 225, 250, 275), "passing yards"),
+           ("completions", (18, 20, 22, 25), "completions")],
+    "RB": [("rushing_yards", (40, 50, 60, 70, 80), "rushing yards"),
+           ("receptions", (3, 4, 5), "receptions")],
+    "WR": [("receiving_yards", (40, 50, 60, 70, 80, 90), "receiving yards"),
+           ("receptions", (3, 4, 5, 6), "receptions")],
+    "TE": [("receiving_yards", (25, 30, 40, 50, 60), "receiving yards"),
+           ("receptions", (3, 4, 5), "receptions")],
 }
 
 def fetch_day(date):
@@ -144,7 +144,7 @@ def candidate(player, most_recent_week):
         for line in lines:
             hits5 = sum(float(value) >= line for value in last5)
             hits10 = sum(float(value) >= line for value in last10)
-            if hits5 < 4 or hits10 / len(last10) < 0.6:
+            if hits5 < 4 or hits10 / len(last10) < 0.65:
                 continue
             # Higher of several consistently-hit thresholds, without claiming probability.
             options.append((hits5, hits10 / len(last10), line, field, description))
@@ -220,7 +220,7 @@ def main():
         "date_uk": now.astimezone(UK).date().isoformat(),
         "updated_at": now.isoformat(),
         "source": "ESPN NFL scoreboard (unofficial public endpoint) and nflverse weekly player logs",
-        "methodology": "Last five games 4/5+, last ten games at least 60%, with current roster verification. Historical filters, not betting probabilities; game-day availability must be checked.",
+        "methodology": "Last five games 4/5+, last ten games at least 65%, with current roster verification. Historical filters, not betting probabilities; game-day availability must be checked.",
         "games": build(stats, games),
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
