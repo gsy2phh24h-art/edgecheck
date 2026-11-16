@@ -6,7 +6,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/refresh-stats.yml'
-      - 'edgecheck-public 3/scripts/generate_game_picks.py'
+      - 'edgecheck-public/scripts/generate_game_picks.py'
   schedule:
     - cron: '20 10 * * *'
     - cron: '20 19 * * *'
@@ -38,14 +38,9 @@ jobs:
         run: |
           python edgecheck-public/scripts/update_stats.py
 
-      - name: Copy statistics to live website
-        run: |
-          mkdir -p "edgecheck-public 3/data"
-          cp edgecheck-public/data/stats.json "edgecheck-public 3/data/stats.json"
-
       - name: Generate upcoming NFL game suggestions
         run: |
-          python "edgecheck-public 3/scripts/generate_game_picks.py"
+          python edgecheck-public/scripts/generate_game_picks.py
 
       - name: Save and publish statistics
         run: |
@@ -53,8 +48,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add edgecheck-public/data/stats.json
-          git add "edgecheck-public 3/data/stats.json"
-          git add "edgecheck-public 3/data/game-picks.json"
+          git add edgecheck-public/data/game-picks.json
 
           if ! git diff --cached --quiet; then
             git commit -m "Update NFL stats"
