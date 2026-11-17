@@ -194,6 +194,27 @@ function makeSuggestedBuilders(offers,target){
   if(unique.has(k))return false;unique.add(k);return true;
  }).slice(0,6);
 }
+function trustedBet365Url(value){
+ try {
+  const u=new URL(value);
+  const h=u.hostname.toLowerCase();
+  if(u.protocol==='https:' && /(^|\\.)bet365\\.(com|co\\.uk)$/.test(h))return u.href;
+ }catch{}
+ return null;
+}
+function builderBet365Link(legs){
+ const verified=(legs||[]).find(leg=>String(leg.bookmaker_key||'').toLowerCase()==='bet365'&&trustedBet365Url(leg.url));
+ return verified?trustedBet365Url(verified.url):'https://www.bet365.com/';
+}
+function openBet365ForSelections(text,legs){
+ // Browser popup blockers require the destination to open within this click.
+ const target=builderBet365Link(legs);
+ const newTab=window.open(target,'_blank','noopener,noreferrer');
+ if(!newTab)window.location.assign(target);
+ if(navigator.clipboard&&navigator.clipboard.writeText){
+  navigator.clipboard.writeText(text).then(()=>{},()=>{window.prompt('Copy your selections:',text);});
+ }else window.prompt('Copy your selections:',text);
+}
 function suggestedBuilderText(b){
  return ['EdgeCheck suggested NFL bet builder',b.game,
   ...b.legs.map((l,i)=>(i+1)+'. '+l.player+' | '+l.side+' '+l.line+' '+(l.market_label||l.market)),
@@ -236,15 +257,22 @@ function renderOddsBoard(){
   '<p class="no-picks">The estimated total multiplies standalone prices. A real bet365 Bet Builder can offer different odds, restrict legs or reject the combination.</p>'+
   '<div class="combo-actions"><button type="button" class="compare-btn" data-copy-suggested="'+i+'">Copy builder</button>'+
   '<button type="button" class="compare-btn" data-load-suggested="'+i+'">Add to my builder</button>'+
-  '<a class="check-bookmaker" href="https://www.bet365.com/" target="_blank" rel="noopener noreferrer">Open bet365 ↗</a></div></article>'
+  '<button type="button" class="compare-btn bet365-combo-launch" data-copy-open-suggested="'+i+'">Copy &amp; open bet365 ↗</button></div></article>'
  ).join('');
 }
 document.addEventListener('click',async e=>{
  const copy=e.target.closest('[data-copy-suggested]');
  const load=e.target.closest('[data-load-suggested]');
- if(!copy&&!load)return;
- const index=Number((copy||load).dataset[copy?'copySuggested':'loadSuggested']);
+ const launch=e.target.closest('[data-copy-open-suggested]');
+ if(!copy&&!load&&!launch)return;
+ const click=copy||load||launch;
+ const index=Number(click.dataset[copy?'copySuggested':load?'loadSuggested':'copyOpenSuggested']);
  const builder=suggestedBuilders[index];if(!builder)return;
+ if(launch){
+  openBet365ForSelections(suggestedBuilderText(builder),builder.legs);
+  launch.textContent='Opened bet365 · selections copied';
+  return;
+ }
  if(copy){
   const content=suggestedBuilderText(builder);
   try{await navigator.clipboard.writeText(content);copy.textContent='Copied ✓';}
@@ -459,6 +487,14 @@ $('builder-legs')?.addEventListener('click',e=>{
  if(Number.isInteger(i)&&i>=0&&i<builderLegs.length){builderLegs.splice(i,1);renderBuilder();renderLiveProps();}
 });
 $('clear-builder')?.addEventListener('click',()=>{builderLegs=[];builderFixture='';renderBuilder();renderLiveProps();});
+$('open-copied-builder')?.addEventListener('click',()=>{
+ if(!builderLegs.length)return;
+ const text=['EdgeCheck NFL Bet Builder',builderFixtureName(builderFixture),
+ ...builderLegs.map((l,i)=>(i+1)+'. '+builderLabel(l)),
+ '','Open the game in bet365, tap Bet Builder, and add these manually.',
+ 'Prices and combined odds must be verified in bet365.'].join('\\n');
+ openBet365ForSelections(text,builderLegs);
+});
 $('copy-builder')?.addEventListener('click',async()=>{
  if(!builderLegs.length)return;
  const text=['EdgeCheck NFL Bet Builder selections','Game: '+builderFixtureName(builderFixture),
