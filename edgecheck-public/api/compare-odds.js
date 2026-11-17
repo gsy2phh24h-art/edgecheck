@@ -4,7 +4,7 @@
 const MARKETS = Object.freeze({
   passing_yards:'player_pass_yds',
   rushing_yards:'player_rush_yds',
-  receiving_yards:'player_reception_yds',
+  receiving_yards:'player_rec_yds',
   receptions:'player_receptions',
   completions:'player_pass_completions',
   attempts:'player_pass_attempts',
@@ -56,7 +56,10 @@ module.exports=async function handler(req,res) {
   const kickoff=Date.parse(game?.kickoff);
   if(!game||!Number.isFinite(kickoff)||kickoff<=Date.now())
     return respond(res,{status:'not_upcoming',comparisons:[]});
-  const picks=(game.suggestions||[]).filter(s=>MARKETS[s.market]&&Number.isFinite(Number(s.line))).slice(0,8);
+  const picks=[...(game.suggestions||[]),...(game.higher_risk_suggestions||[])]
+    .filter(s=>MARKETS[s.market]&&Number.isFinite(Number(s.line)))
+    .filter((s,i,all)=>all.findIndex(v=>v.player_id===s.player_id&&v.market===s.market&&Number(v.line)===Number(s.line))===i)
+    .slice(0,16);
   if(!picks.length)return respond(res,{status:'no_selections',comparisons:[]});
   try {
     const rows=await fetchProps(key,[...new Set(picks.map(s=>MARKETS[s.market]))]);
@@ -65,18 +68,24 @@ module.exports=async function handler(req,res) {
       const quotes=[];
       for(const row of rows){
         if(!row || !UK_BOOKS.has(norm(row.bookmaker)))continue;
-        if(norm(row.player)!==norm(p.player)||row.market_key!==MARKETS[p.market])continue;
+        const aliases={
+          player_pass_yds:['player_pass_yds','player_passing_yards','player_pass_yards'],
+          player_rush_yds:['player_rush_yds','player_rushing_yards'],
+          player_rec_yds:['player_rec_yds','player_reception_yds','player_receiving_yards']
+        };
+        const accepted=aliases[MARKETS[p.market]]||[MARKETS[p.market]];
+        if(norm(row.player)!==norm(p.player)||!accepted.includes(row.market_key))continue;
         // 40+ on a whole-number stat is equivalent to Over 39.5.
         const line=Number(row.line);
         if(!Number.isFinite(line) || Math.abs(line-(Number(p.line)-0.5))>0.001)continue;
-        if(row.period && row.period!=='FULL')continue;
+        if(row.period && String(row.period).toUpperCase()!=='FULL')continue;
         if(norm(row.home_team)!==norm(game.home)||norm(row.away_team)!==norm(game.away))continue;
         const quotedKickoff=Date.parse(row.commence_time);
         if(!Number.isFinite(quotedKickoff)||Math.abs(quotedKickoff-kickoff)>7200000)continue;
-        const checked=Number.isFinite(Number(row.last_update))?
-          new Date(Number(row.last_update)).getTime():Date.parse(row.last_update);
+        const raw=typeof row.last_update==='number'?row.last_update:null;
+        const checked=raw!==null && raw>1e11 ? raw : Date.parse(row.last_update || '');
         const age=Number.isFinite(Number(row.age_seconds))?Number(row.age_seconds)*1000:null;
-        const observation=Number.isFinite(checked)?checked:(age!==null?now-age:NaN);
+        const observation=Number.isFinite(checked)&&checked>1e11?checked:(age!==null?now-age:NaN);
         if(!Number.isFinite(observation)||observation>now+120000||now-observation>1800000)continue;
         const price=americanToDecimal(row.over_price);
         if(!price||price<=1||price>1000)continue;
