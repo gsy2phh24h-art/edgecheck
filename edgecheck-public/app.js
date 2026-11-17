@@ -583,7 +583,7 @@ if(document.body.dataset.page==='props'){
   if(saved){
     sessionStorage.removeItem('edgecheck_pending_builder');
     const parsed=JSON.parse(saved);
-    if(/^\\d{7,15}$/.test(String(parsed.game_id))&&Array.isArray(parsed.legs)){
+    if(/^\d{7,15}$/.test(String(parsed.game_id))&&Array.isArray(parsed.legs)){
       builderFixture=String(parsed.game_id);
       builderLegs=parsed.legs.filter(l=>l&&String(l.game_id)===builderFixture&&l.player&&l.market&&Number.isFinite(Number(l.line))).slice(0,8);
     }
