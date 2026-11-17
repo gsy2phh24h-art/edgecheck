@@ -96,10 +96,13 @@ document.addEventListener('click', async event => {
     const data = await response.json();
     if (data.status !== 'ok') {
       const messages = {
-        not_configured: 'Live odds are not connected yet. An authorised odds API subscription is required.',
+        not_configured: 'OddsLink has not yet been configured for this website.',
+        plan_required: 'OddsLink requires the Growth plan or higher for NFL player props. Your key is connected but this market is not enabled on its plan.',
+        key_invalid: 'The OddsLink API key was rejected. Check your OddsLink account.',
+        market_not_supported: 'One requested NFL player-prop market is not supported by OddsLink.',
         no_event_coverage: 'This NFL game is not currently covered by the selected odds provider.',
-        no_uk_prop_coverage: 'The odds feed returned no UK bookmaker NFL player-prop markets for this game. This provider currently mainly covers US and Australian player props.',
-        no_exact_lines: 'UK player-prop markets were found, but none matched the exact player and threshold. Check the bookmaker for other lines.',
+        no_uk_prop_coverage: 'No verified UK bookmaker player-prop prices are available for this fixture.',
+        no_exact_lines: 'OddsLink returned no fresh matching UK-bookmaker price for these exact player targets. Other lines may be available.',
         not_upcoming: 'Pre-match prices are no longer available for this fixture.',
         provider_unavailable: 'Price provider temporarily unavailable. Check prices directly with bookmakers.',
         no_selections: 'No suitable player selections available for comparison.'
@@ -122,7 +125,7 @@ document.addEventListener('click', async event => {
             <span>${escapeHtml(q.bookmaker)}</span><b>${Number(q.odds).toFixed(2)}</b>${link}
             <small>Checked ${escapeHtml(new Date(q.checked_at).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}))} UK</small>
           </div>`;
-        }).join('') : '<p class="no-picks">No exact UK price verified for this player and target.</p>'}
+        }).join('') : '<p class="no-picks">No fresh UK bookmaker quote for this exact player and target.</p>'}
       </div>`;
     }).join('') + '<p class="no-picks">Prices may change. Links are only as specific as the bookmaker permits. Confirm the selection before betting.</p>';
   } catch {
