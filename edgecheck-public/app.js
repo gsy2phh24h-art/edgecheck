@@ -283,7 +283,7 @@ document.addEventListener('click',async e=>{
    game_id:String(o.game_id),player:String(o.player),
    market:String(o.market),market_label:String(o.market_label||o.market),
    side:o.side,line:Number(o.line),odds:Number(o.odds),
-   bookmaker:String(o.bookmaker)
+   bookmaker:String(o.bookmaker),bookmaker_key:String(o.bookmaker_key||''),url:o.url||null
   }));
   if(document.body.dataset.page!=='props'){
     try{sessionStorage.setItem('edgecheck_pending_builder',JSON.stringify({game_id:builderFixture,legs:builderLegs}));}catch{}
@@ -416,7 +416,7 @@ function addBuilderLeg(offer){
   market_label:String(offer.market_label||marketNames[offer.market]||offer.market),
   side:offer.side==='Under'?'Under':'Over',line:Number(offer.line),
   odds:Number.isFinite(Number(offer.odds))&&Number(offer.odds)>1?Number(offer.odds):null,
-  bookmaker:String(offer.bookmaker||'')};
+  bookmaker:String(offer.bookmaker||''),bookmaker_key:String(offer.bookmaker_key||''),url:offer.url||null};
  if(same>=0)builderLegs.splice(same,1,leg);
  else if(builderLegs.length<8)builderLegs.push(leg);
  else{$('props-status').textContent='This builder has a maximum of eight selections.';return;}
