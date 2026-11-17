@@ -15,7 +15,7 @@
   <p class="value-intro">Switch between balanced and higher-risk player targets, based on the last five and ten games. Higher-risk picks use harder statistical thresholds, not proven value or guaranteed returns.</p>
   <div class="gamepicks-toolbar"><span id="picks-date">Checking today's schedule…</span><span id="picks-updated"></span></div>
   <div id="game-picks-list" class="game-picks-list" aria-live="polite"><div class="value-empty">Loading today's NFL matchups…</div></div>
-  <p class="footnote">Suggestions are automatically generated from recent game logs when the daily updater runs. Odds are not shown until a licensed feed is available. Check injuries, line-ups and bookmaker markets before acting. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
+  <p class="footnote">Suggestions are automatically generated from recent game logs when the daily updater runs. Only exact bookmaker quotes are shown in the live markets section; any statistical suggestions without a quote remain unpriced. Check injuries, line-ups and bookmaker markets before acting. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
 </section>
 
 
@@ -31,6 +31,26 @@
   <div class="odds-board-meta"><span id="odds-board-date">Checking today's odds…</span><span id="odds-board-count">0 available</span></div>
   <div id="odds-board-results" class="odds-board-results" aria-live="polite"><div class="value-empty">Checking sourced offers…</div></div>
   <p class="footnote">These filters apply to individual quoted bets, not combined bet builders. A price is a timestamped quote, not a guaranteed offer. Combined bet-builder odds require a separate bookmaker quote. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
+</section>
+
+<section class="panel liveprops" id="live-props" aria-labelledby="live-props-title">
+ <div class="sectionhead"><div><span class="overline">05 / LIVE PLAYER MARKETS</span><h2 id="live-props-title">Build your bet365 player-prop list</h2></div><span class="tag">ACTUAL FEED</span></div>
+ <p class="value-intro">Browse priced NFL player props returned by ParlayAPI. Choose a single fixture and add as many available player lines as you like. Copy the selection list and open bet365 to build it yourself. Odds shown are individual source quotes, not a priced bet365 Bet Builder.</p>
+ <div class="two live-props-filters">
+  <div><label class="fieldlabel" for="prop-game">MATCHUP</label><select id="prop-game"><option value="">Loading upcoming matchups…</option></select></div>
+  <div><label class="fieldlabel" for="prop-market">PLAYER MARKET</label><select id="prop-market"><option value="">All player markets</option><option value="player_pass_yds">Passing yards</option><option value="player_rush_yds">Rushing yards</option><option value="player_rec_yds">Receiving yards</option><option value="player_receptions">Receptions</option><option value="player_pass_completions">Completions</option><option value="player_anytime_td">Touchdowns</option></select></div>
+ </div>
+ <div class="live-props-actions"><button type="button" class="compare-btn" id="load-props">Refresh available props</button><span id="props-status" role="status">Checking available sportsbook quotes…</span></div>
+ <div class="live-props-layout">
+  <div><div id="live-props-results" aria-live="polite"><div class="value-empty">Loading real player markets…</div></div></div>
+  <aside class="builder-panel" aria-labelledby="builder-title"><h3 id="builder-title">Your bet365 builder list <span id="builder-count">0</span></h3><p class="no-picks" id="builder-game">Select an NFL fixture and add player props.</p>
+   <div id="builder-legs"><p class="no-picks">No selections added yet.</p></div>
+   <button type="button" class="primary" id="copy-builder">Copy bet builder selections</button>
+   <a class="check-bookmaker builder-open" href="https://www.bet365.com/" rel="noopener noreferrer" target="_blank">Open bet365 ↗</a>
+   <button type="button" class="textbtn" id="clear-builder">Clear selections</button>
+   <p class="footnote" id="builder-note">Copying does not add bets to bet365 automatically. Same-match selections may be restricted or unavailable. Check player eligibility, available lines and the final combined price at bet365 before placing any bet.</p>
+  </aside>
+ </div>
 </section>
 
 <section class="about"><div class="overline">BUILT FOR BETTER RESEARCH</div><h2>Every leg. Actual game logs.</h2><div class="features"><div><span>◫</span><strong>Recent form</strong><p>Review each player's last 5, 10 or 20 recorded games.</p></div><div><span>◉</span><strong>Target hit rates</strong><p>See how often a player reaches your specific line, not a generic average.</p></div><div><span>▤</span><strong>Compare selections</strong><p>Build a multi-leg slip and spot the weakest recent performers.</p></div></div></section>
