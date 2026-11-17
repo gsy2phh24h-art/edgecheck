@@ -76,7 +76,9 @@ async function render(){
 document.querySelectorAll('[data-league]').forEach(button=>button.addEventListener('click',()=>{
  chosen=button.dataset.league;
  chosenGame='';chosenMarket='';selectedLegs=[];renderSelectionList();
- loadSportsPrices();
+ const remembered=priceCache.get(chosen);
+ if(remembered&&Date.now()-remembered.when<1800000)applyPrices(chosen,remembered.data);
+ else{priceOffers=[];priceStatus='Choose Load player odds to request this competition. Fixture browsing uses no ParlayAPI credits.';refreshOddsResults();}
  document.querySelectorAll('[data-league]').forEach(b=>{const yes=b===button;b.classList.toggle('active',yes);b.setAttribute('aria-pressed',String(yes));});
  render();
 }));
@@ -319,5 +321,6 @@ if(board){
   }
  }catch{}
  renderSelectionList();
- loadSportsPrices();
+ priceStatus='Select Load player odds to retrieve current available quotes for this competition. Fixture browsing does not use ParlayAPI credits.';
+ refreshOddsResults();
 }
