@@ -73,3 +73,29 @@
 .combo-actions .compare-btn{width:auto;padding:10px 13px}
 .combo-actions .check-bookmaker{margin:0}
 @media(max-width:550px){.combo-actions{flex-direction:column;align-items:stretch}.combo-actions .compare-btn,.combo-actions .check-bookmaker{width:100%;text-align:center}}
+
+
+/* Multi-page EdgeCheck navigation and home dashboard */
+.site-nav{border-bottom:1px solid #29414b;background:#0b1b24}
+.site-nav-inner{max-width:1180px;margin:auto;padding:0 20px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+.site-nav a{display:inline-block;padding:15px 18px;white-space:nowrap;font-size:13px;font-weight:700;color:#a8bcc3;text-decoration:none;border-bottom:3px solid transparent}
+.site-nav a:hover{color:#ebfff3;background:#132a33}
+body[data-page="home"] .site-nav [data-nav="home"],body[data-page="research"] .site-nav [data-nav="research"],body[data-page="picks"] .site-nav [data-nav="picks"],body[data-page="builders"] .site-nav [data-nav="builders"],body[data-page="props"] .site-nav [data-nav="props"]{border-bottom-color:#6cffa9;color:#b8ffda;background:#112b2c}
+.page-intro{margin:32px 0 25px}
+.page-intro h1{font-size:clamp(28px,4vw,45px);line-height:1.12;margin:10px 0 12px;letter-spacing:-1.3px}
+.page-intro p{max-width:730px;color:#aebfc8;line-height:1.6;margin:0}
+.home-pages{padding:35px 0 30px}
+.home-pages>h2{font-size:clamp(23px,3vw,34px);margin:11px 0 24px;letter-spacing:-.7px}
+.home-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.home-page-card{background:linear-gradient(135deg,#152e39,#10232e);border:1px solid #34505a;border-radius:17px;padding:23px;min-height:204px;display:flex;flex-direction:column;gap:13px;color:#aebdc5;text-decoration:none;transition:background .15s,border-color .15s}
+.home-page-card:hover{border-color:#6cffa9;background:#173639}
+.home-page-card strong{font-size:21px;color:#f0f9fa}
+.home-page-card .home-card-icon{font-size:28px;color:#6cffa9}
+.home-page-card .card-cta{margin-top:auto;color:#6cffa9;font-size:13px;font-weight:750}
+body[data-page="home"] .columns,body[data-page="home"] .gamepicks,body[data-page="home"] .tier-board,body[data-page="home"] .liveprops{display:none!important}
+body[data-page="research"] .hero,body[data-page="research"] .gamepicks,body[data-page="research"] .tier-board,body[data-page="research"] .liveprops,body[data-page="research"] .about{display:none!important}
+body[data-page="picks"] .hero,body[data-page="picks"] .columns,body[data-page="picks"] .tier-board,body[data-page="picks"] .liveprops,body[data-page="picks"] .about{display:none!important}
+body[data-page="builders"] .hero,body[data-page="builders"] .columns,body[data-page="builders"] .gamepicks,body[data-page="builders"] .liveprops,body[data-page="builders"] .about{display:none!important}
+body[data-page="props"] .hero,body[data-page="props"] .columns,body[data-page="props"] .gamepicks,body[data-page="props"] .tier-board,body[data-page="props"] .about{display:none!important}
+body[data-page]:not([data-page="home"]) .shell{min-height:75vh}
+@media(max-width:670px){.site-nav-inner{padding:0 9px}.site-nav a{font-size:12px;padding:13px 11px}.home-card-grid{grid-template-columns:1fr}.home-page-card{min-height:185px}.page-intro{margin:24px 0 18px}}
