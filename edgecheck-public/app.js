@@ -35,12 +35,12 @@ async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
   $('picks-updated').textContent='Updated '+prettyKickoff(data.updated_at);
   const games=(Array.isArray(data.games)?data.games:[]).filter(g=>Number.isFinite(Date.parse(g.kickoff))&&Date.parse(g.kickoff)>Date.now()).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
   if(!games.length){out.innerHTML='<div class="value-empty"><strong>No upcoming fixtures in the latest update.</strong><p>The next fixture refresh will check the NFL schedule again.</p></div>';return;}
-  out.innerHTML=games.map(g=>{const before=Date.parse(g.kickoff)>Date.now();const picks=before&&Array.isArray(g.suggestions)?g.suggestions:[];
+  out.innerHTML='<div class="risk-picker" role="group" aria-label="Pick difficulty"><button type="button" class="active" data-risk-choice="balanced">Balanced targets</button><button type="button" data-risk-choice="higher">Higher-risk targets</button></div>'+games.map(g=>{const before=Date.parse(g.kickoff)>Date.now();const picks=before&&Array.isArray(g.suggestions)?g.suggestions:[];const boldPicks=before&&Array.isArray(g.higher_risk_suggestions)?g.higher_risk_suggestions:[];
     return `<article class="match-card"><div class="match-head"><div><span class="overline">NFL MATCHUP</span><h3>${escapeHtml(g.away)} <span class="muted">at</span> ${escapeHtml(g.home)}</h3><small>${escapeHtml(prettyKickoff(g.kickoff))}</small></div><span class="tag">${before?'UPCOMING':'STARTED / FINISHED'}</span></div>
-    ${picks.length?`<div class="match-picks">${picks.map(p=>`<div class="match-pick"><div><strong>${escapeHtml(p.player)}</strong><small>${escapeHtml(p.team)} · ${escapeHtml(p.label)}</small><small>Against ${escapeHtml(p.opponent||'opponent')} · roster checked</small></div><div class="pick-rate">${p.hits}/${p.sample}<small>Last 5 hit</small></div></div>`).join('')}</div>`:'<p class="no-picks">'+(before?'No roster-verified suggestions available for this matchup.':'Pregame suggestions are hidden once kickoff has passed.')+'</p>'}
+    ${['balanced','higher'].map(tier=>{const arr=tier==='balanced'?picks:boldPicks;return `<div class="risk-group" data-risk-group="${tier}" ${tier==='higher'?'hidden':''}>${arr.length?`<div class="match-picks">${arr.map(p=>`<div class="match-pick"><div><strong>${escapeHtml(p.player)}</strong><small>${escapeHtml(p.team)} · ${escapeHtml(p.label)}</small><small>Against ${escapeHtml(p.opponent||'opponent')} · roster checked</small></div><div class="pick-rate">${p.hits}/${p.sample}<small>Last 5 hit</small></div></div>`).join('')}</div>`:'<p class="no-picks">No qualifying selections in this category. Historical performance does not guarantee future outcomes.</p>'}</div>`}).join('')}
     <p class="no-picks"><small>${escapeHtml(g.verification_note||'Roster and availability checks are not available.')}</small></p>
     ${g.defensive_context?`<details class="match-context"><summary>Opponent defence context (estimated)</summary>${Object.entries(g.defensive_context).map(([team,s])=>s?`<p><strong>${escapeHtml(team)}</strong> · Pass yards conceded/game: ${s.pass_yards_allowed_avg} · Rush yards conceded/game: ${s.rush_yards_allowed_avg} · ${s.sample_games} games</p>`:'').join('')}<small>${escapeHtml(g.context_note||'Approximations from weekly game logs, not official defensive statistics.')}</small></details>`:''}
-    ${before && picks.length ? `<div class="compare-actions"><button class="compare-btn" type="button" data-compare-game="${escapeHtml(String(g.id))}">Compare UK bookmaker prices</button><div id="bookmaker-results-${escapeHtml(String(g.id))}" class="bookmaker-results" aria-live="polite"></div></div>` : ''}
+    ${before && (picks.length || boldPicks.length) ? `<div class="compare-actions"><button class="compare-btn" type="button" data-compare-game="${escapeHtml(String(g.id))}">Compare UK bookmaker prices</button><div id="bookmaker-results-${escapeHtml(String(g.id))}" class="bookmaker-results" aria-live="polite"></div></div>` : ''}
     <a href="https://www.bet365.com/" class="check-bookmaker" target="_blank" rel="noopener noreferrer">Check available markets at bet365 ↗</a><p class="no-picks"><a href="https://www.nfl.com/injuries/" target="_blank" rel="noopener noreferrer">Check official NFL injury reports ↗</a> · Confirm line-ups and market availability before betting.</p>
     </article>`}).join('');
  }catch(e){$('picks-date').textContent='No current suggestions';$('picks-updated').textContent='';out.innerHTML='<div class="value-empty"><strong>Today’s suggestions are not available yet.</strong><p>Game picks will appear automatically after the statistics and matchup data have been imported. No unverified recommendations are shown.</p></div>';}}
@@ -134,4 +134,12 @@ document.addEventListener('click', async event => {
   } finally {
     btn.disabled = false;
   }
+});
+
+document.addEventListener('click', e=>{
+ const btn=e.target.closest('[data-risk-choice]');if(!btn)return;
+ const tier=btn.dataset.riskChoice;
+ if(!['balanced','higher'].includes(tier))return;
+ document.querySelectorAll('[data-risk-choice]').forEach(b=>{const selected=b.dataset.riskChoice===tier;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+ document.querySelectorAll('[data-risk-group]').forEach(el=>el.hidden=el.dataset.riskGroup!==tier);
 });
