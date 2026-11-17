@@ -60,3 +60,16 @@
 .builder-leg button{border:0;background:none;color:#faadad;font-size:20px;cursor:pointer}
 @media(max-width:800px){.live-props-layout{grid-template-columns:minmax(0,1fr)}.builder-panel{position:static}.prop-offer-list{max-height:460px}}
 @media(max-width:480px){.prop-offer{gap:7px;padding:10px}.prop-offer-info small{font-size:10px}.prop-offer button{padding:7px 9px}.match-pick{flex-wrap:wrap}}
+
+
+/* Same-game decimal-target builder cards */
+.combo-card{padding:17px 18px}
+.combo-odds{text-align:right;white-space:nowrap}
+.combo-odds small{display:block;color:#a5b9bf;font-size:10px;margin-top:4px}
+.combo-legs{margin:15px 0;padding-left:22px}
+.combo-legs li{padding:6px 0;line-height:1.4}
+.combo-legs li small{color:#a8bdc3;font-size:11px}
+.combo-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px}
+.combo-actions .compare-btn{width:auto;padding:10px 13px}
+.combo-actions .check-bookmaker{margin:0}
+@media(max-width:550px){.combo-actions{flex-direction:column;align-items:stretch}.combo-actions .compare-btn,.combo-actions .check-bookmaker{width:100%;text-align:center}}
