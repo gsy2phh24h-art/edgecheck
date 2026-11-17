@@ -14,7 +14,7 @@ const UK_BOOKS = new Set(['bet365','unibet']); // Verified bookmaker identities,
 const norm = s => String(s||'').normalize('NFKD').toLowerCase()
   .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
 const respond = (res, value, code=200) => {
-  res.setHeader('Cache-Control','public, s-maxage=300, stale-while-revalidate=120');
+  res.setHeader('Cache-Control','public, s-maxage=1800, stale-while-revalidate=300');
   return res.status(code).json(value);
 };
 const americanToDecimal = v => {
