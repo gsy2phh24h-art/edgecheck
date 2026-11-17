@@ -85,11 +85,14 @@ let livePriceLoading=false;
 let propFeedCache=null;
 let propFeedPromise=null;
 let propFeedAt=0;
+const PROP_REFRESH_MS=30*60*1000; // Match the shared CDN refresh window.
 async function getPropFeed(force=false){
- if(!force&&propFeedCache&&Date.now()-propFeedAt<180000)return propFeedCache;
+ // "Refresh" only updates the view from the shared cache until the window expires.
+ if(propFeedCache&&Date.now()-propFeedAt<PROP_REFRESH_MS)return propFeedCache;
  if(propFeedPromise)return propFeedPromise;
  propFeedPromise=(async()=>{
-  const response=await fetch('/api/props-board?cb='+Math.floor(Date.now()/180000),{cache:'no-store'});
+  // No cache-busting parameter or no-store header: both bypass the CDN and waste credits.
+  const response=await fetch('/api/props-board');
   if(!response.ok)throw Error('Live player market service returned HTTP '+response.status);
   const data=await response.json();
   propFeedCache=data;propFeedAt=Date.now();
@@ -330,7 +333,7 @@ document.querySelectorAll('[data-odds-tier]').forEach(b=>b.addEventListener('cli
  activeOddsTier=Number(b.dataset.oddsTier);
  if(!livePriceChecked)loadLiveOddsBoard();else renderOddsBoard();
 }));
-document.addEventListener('click',e=>{if(e.target.closest('#refresh-odds')){livePriceChecked=0;loadLiveOddsBoard();}});
+document.addEventListener('click',e=>{if(e.target.closest('#refresh-odds'))loadLiveOddsBoard();});
 renderOddsBoard();
 
 
@@ -516,7 +519,10 @@ $('prop-game')?.addEventListener('change',e=>{
 });
 $('prop-market')?.addEventListener('change',renderLiveProps);
 $('prop-sort')?.addEventListener('change',renderLiveProps);
-$('load-props')?.addEventListener('click',()=>{propFeedAt=0;loadPlayerProps(true);loadLiveOddsBoard(true);});
+$('load-props')?.addEventListener('click',()=>{
+ // Manual refresh re-renders cached offers. It cannot repeatedly bill the provider.
+ loadPlayerProps();
+});
 $('live-props-results')?.addEventListener('click',e=>{
  const btn=e.target.closest('[data-add-live]');if(!btn)return;
  const offer=builderAllOffers.find(o=>o.id===btn.dataset.addLive);
