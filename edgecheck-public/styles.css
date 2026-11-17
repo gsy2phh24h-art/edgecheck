@@ -219,3 +219,9 @@ body[data-page="nba"] .site-nav [data-nav="nba"],body[data-page="football"] .sit
 .sports-combos .combo-card{margin:11px 0}
 @media(max-width:850px){.sport-odds-filters{grid-template-columns:1fr 1fr}.sport-props-grid{grid-template-columns:1fr}.sport-props-grid .builder-panel{position:static}}
 @media(max-width:540px){.sport-odds-filters{grid-template-columns:1fr}}
+
+.sport-odds-filters input{display:block;width:100%;background:#102934;color:#ecf8f6;border:1px solid #3e5963;border-radius:10px;min-height:46px;padding:10px 12px;font-size:12px}
+.sport-odds-filters input:focus-visible{outline:2px solid #6cffa9;outline-offset:2px}
+.sport-odds-filters{grid-template-columns:1.3fr 1fr 1fr 1fr}
+@media(max-width:850px){.sport-odds-filters{grid-template-columns:1fr 1fr}}
+@media(max-width:540px){.sport-odds-filters{grid-template-columns:1fr}}
