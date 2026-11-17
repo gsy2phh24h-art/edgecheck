@@ -440,7 +440,16 @@ function filteredProps(){
   if(!previous||(o.bookmaker_key==='bet365'&&previous.bookmaker_key!=='bet365')||
     (o.bookmaker_key===previous.bookmaker_key&&o.odds>previous.odds))deduped.set(key,o);
  }
- return Array.from(deduped.values()).sort((a,b)=>a.player.localeCompare(b.player)||a.market_label.localeCompare(b.market_label)||Number(a.line)-Number(b.line)).slice(0,75);
+ const sort=$('prop-sort')?.value||'odds-desc';
+ const selected=Array.from(deduped.values());
+ const byPlayer=(a,b)=>a.player.localeCompare(b.player)||a.market_label.localeCompare(b.market_label)||Number(a.line)-Number(b.line);
+ selected.sort((a,b)=>{
+  if(sort==='odds-asc')return Number(a.odds)-Number(b.odds)||byPlayer(a,b);
+  if(sort==='player-asc')return byPlayer(a,b);
+  if(sort==='player-desc')return -a.player.localeCompare(b.player)||a.market_label.localeCompare(b.market_label)||Number(a.line)-Number(b.line);
+  return Number(b.odds)-Number(a.odds)||byPlayer(a,b);
+ });
+ return selected.slice(0,75);
 }
 function renderLiveProps(){
  const el=$('live-props-results');if(!el)return;
@@ -475,6 +484,7 @@ $('prop-game')?.addEventListener('change',e=>{
  renderLiveProps();
 });
 $('prop-market')?.addEventListener('change',renderLiveProps);
+$('prop-sort')?.addEventListener('change',renderLiveProps);
 $('load-props')?.addEventListener('click',()=>{propFeedAt=0;loadPlayerProps(true);loadLiveOddsBoard(true);});
 $('live-props-results')?.addEventListener('click',e=>{
  const btn=e.target.closest('[data-add-live]');if(!btn)return;
