@@ -61,6 +61,17 @@ module.exports = async function handler(req, res) {
       'apiKey='+encodeURIComponent(key)+'&regions=uk&oddsFormat=decimal&includeLinks=true&markets='+encodeURIComponent(marketKeys);
     const quote = await fetchJson(url);
     const now = Date.now();
+    // Distinguish missing UK bookmaker prop coverage from unavailable exact lines.
+    const books = Array.isArray(quote.bookmakers) ? quote.bookmakers : [];
+    const pricedMarketKeys = new Set(books.flatMap(book => (book.markets || []).map(m => m.key)));
+    const hasAnyRequestedProp = [...pricedMarketKeys].some(key => markets.some(m => key === m || key === m+'_alternate'));
+    if (!books.length || !hasAnyRequestedProp) {
+      return respond(res, 200, {
+        status:'no_uk_prop_coverage',
+        message:'This provider has not returned UK bookmaker NFL player-prop markets for this game. Main match odds may still be available.',
+        comparisons:[]
+      });
+    }
     const comparisons = selections.map(s => {
       const correctPoint = Number(s.line)-0.5;
       const matches = [];
@@ -91,7 +102,8 @@ module.exports = async function handler(req, res) {
       matches.sort((a,b) => b.odds - a.odds);
       return {player:s.player, market:s.market, line:s.line, label:s.label, quotes:matches.slice(0,8)};
     });
-    return respond(res, 200, {status:'ok', provider:'The Odds API', event:game.away+' at '+game.home,
+    const anyQuotes = comparisons.some(item => item.quotes.length > 0);
+    return respond(res, 200, {status:anyQuotes?'ok':'no_exact_lines', provider:'The Odds API', event:game.away+' at '+game.home,
       retrieved_at:new Date(now).toISOString(), comparisons});
   } catch (err) {
     // Do not leak the private key, request URL or internal provider response to visitors.
