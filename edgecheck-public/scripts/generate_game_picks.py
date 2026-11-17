@@ -42,13 +42,13 @@ def fixtures(now):
     today = now.astimezone(UK).date()
     found = {}
     # An evening US game can be after midnight in the UK.
-    for offset in (-1, 0, 1, 2):
+    for offset in range(-1, 9):
         for event in fetch_day(today + timedelta(days=offset)):
             try:
                 kickoff = datetime.fromisoformat(event["date"].replace("Z", "+00:00"))
-                # Only show fixtures with kickoffs in the next 36 hours.
+                # Only show fixtures with kickoffs in the next seven days.
                 # This includes US Monday-night games after UK midnight.
-                if not (now <= kickoff <= now + timedelta(hours=36)):
+                if not (now <= kickoff <= now + timedelta(days=7)):
                     continue
                 teams = event["competitions"][0]["competitors"]
                 home = next(x for x in teams if x["homeAway"] == "home")
