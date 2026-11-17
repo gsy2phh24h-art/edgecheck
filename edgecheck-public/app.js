@@ -109,25 +109,133 @@ async function loadLiveOddsBoard(force=false){
  }catch(e){livePriceOffers=[];livePriceError=e.message||'Unable to retrieve player props.';}
  finally{livePriceChecked=Date.now();livePriceLoading=false;renderOddsBoard();}
 }
+// Assemble illustrative same-game combinations around the requested band.
+// The product of single-market prices is NOT a bookmaker's same-game builder quote.
+let suggestedBuilders=[];
+function makeSuggestedBuilders(offers,target){
+ const bands=oddsIntervals[target];
+ const groups=new Map();
+ const now=Date.now();
+ for(const o of offers){
+  if(!o.game_id||!o.player||!o.market||!o.bookmaker_key||!Number.isFinite(o.odds)||
+      o.odds<1.12||o.odds>2.55||!Number.isFinite(Date.parse(o.checked_at))||
+      now-Date.parse(o.checked_at)>1800000)continue;
+  const key=o.game_id+'|'+o.bookmaker_key;
+  if(!groups.has(key))groups.set(key,[]);
+  groups.get(key).push(o);
+ }
+ const options=[];
+ for(const [groupKey,rows] of groups){
+  // Limit to one line per player and market, eliminating repetitive/contradictory props.
+  const seen=new Map();
+  for(const o of rows){
+   if(o.side!=='Over')continue;
+   const key=o.player.toLowerCase()+'|'+o.market;
+   const existing=seen.get(key);
+   if(!existing||Math.abs(o.odds-1.55)<Math.abs(existing.odds-1.55))seen.set(key,o);
+  }
+  const eligible=[...seen.values()].sort((x,y)=>x.player.localeCompare(y.player)).slice(0,24);
+  if(eligible.length<2)continue;
+  // Bounded beam search produces 2-4 different-player selections.
+  let beam=[{legs:[],estimate:1,players:new Set(),next:0}];
+  for(let depth=1;depth<=4;depth++){
+   const next=[];
+   for(const state of beam){
+    for(let i=state.next;i<eligible.length;i++){
+     const leg=eligible[i];
+     if(state.players.has(leg.player.toLowerCase()))continue;
+     const estimate=state.estimate*leg.odds;
+     if(estimate>bands[1]*1.25)continue;
+     const players=new Set(state.players);players.add(leg.player.toLowerCase());
+     const draft={legs:[...state.legs,leg],estimate,players,next:i+1};
+     next.push(draft);
+     if(depth>=2&&estimate>=bands[0]&&estimate<=bands[1]){
+      options.push({legs:draft.legs,estimate,game:leg.game,
+       bookmaker:leg.bookmaker,bookmaker_key:leg.bookmaker_key,game_id:leg.game_id});
+     }
+    }
+   }
+   next.sort((x,y)=>Math.abs(Math.log(x.estimate/target))-
+    Math.abs(Math.log(y.estimate/target)));
+   beam=next.slice(0,85);
+   if(!beam.length)break;
+  }
+ }
+ options.sort((x,y)=>{
+   const xb=x.bookmaker_key==='bet365',yb=y.bookmaker_key==='bet365';
+   if(xb!==yb)return xb?-1:1;
+   return Math.abs(x.estimate-target)-Math.abs(y.estimate-target);
+ });
+ // Avoid displaying many near-identical combinations.
+ const unique=new Set();
+ return options.filter(x=>{
+  const k=x.game_id+'|'+x.legs.map(l=>l.player).sort().join('|');
+  if(unique.has(k))return false;unique.add(k);return true;
+ }).slice(0,6);
+}
+function suggestedBuilderText(b){
+ return ['EdgeCheck suggested NFL bet builder',b.game,
+  ...b.legs.map((l,i)=>(i+1)+'. '+l.player+' | '+l.side+' '+l.line+' '+(l.market_label||l.market)),
+  '','Illustrative multiplied single-leg decimal odds: '+b.estimate.toFixed(2),
+  'NOT a quoted bet365 Bet Builder price. Same-game selections can be correlated.',
+  'Enter manually in bet365 Bet Builder and check the actual combined price, availability and player status.'].join('\n');
+}
 function renderOddsBoard(){
  const el=$('odds-board-results');if(!el)return;
  document.querySelectorAll('[data-odds-tier]').forEach(b=>{
-   const active=Number(b.dataset.oddsTier)===activeOddsTier;
-   b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  const active=Number(b.dataset.oddsTier)===activeOddsTier;
+  b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
  });
- const band=oddsIntervals[activeOddsTier];
- const filtered=livePriceOffers.filter(q=>q.odds>=band[0]&&q.odds<=band[1]);
- $('odds-board-date').textContent=livePriceChecked?'Prices checked '+new Date(livePriceChecked).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'})+' UK':'Live bookmaker prices · not yet checked';
- $('odds-board-count').textContent=filtered.length+' quoted player props';
- if(!filtered.length){
-  el.innerHTML='<div class="value-empty"><strong>No verified player-prop quotes around '+activeOddsTier.toFixed(2)+'</strong><p>'+escapeHtml(livePriceError||'The connected feed has not supplied prices in this range. The buttons filter actual single-bet prices, not bet-builder totals.')+'</p><button class="compare-btn" id="refresh-odds" type="button">Check prices again</button></div>';
+ suggestedBuilders=makeSuggestedBuilders(livePriceOffers,activeOddsTier);
+ $('odds-board-date').textContent=livePriceChecked?
+   'Source prices checked '+new Date(livePriceChecked).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'})+' UK':
+   'Waiting for bookmaker market prices';
+ $('odds-board-count').textContent=suggestedBuilders.length+' possible builders';
+ if(!suggestedBuilders.length){
+  el.innerHTML='<div class="value-empty"><strong>No qualifying same-game builders around '+
+   activeOddsTier.toFixed(2)+'</strong><p>'+
+   escapeHtml(livePriceError||'No matching combination of 2–4 independently priced selections from one game and one bookmaker is currently available. This may be a free-feed coverage limitation.')+
+   '</p><button class="compare-btn" id="refresh-odds" type="button">Check prices again</button></div>';
   return;
  }
- el.innerHTML=filtered.map(q=>{
-   const link=q.url?'<a class="check-bookmaker" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(q.url)+'">Open '+escapeHtml(q.link_type==='selection'?'selection':q.link_type==='market'?'market':'match')+' ↗</a>':'';
-   return '<article class="odds-offer"><div class="odds-offer-header"><div><span class="overline">'+escapeHtml(q.game)+'</span><h3>'+escapeHtml(q.player)+' · '+escapeHtml(q.label)+'</h3><small>'+escapeHtml(q.bookmaker)+' · Checked '+escapeHtml(new Date(q.checked_at).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}))+' UK</small></div><strong class="bigodds">'+q.odds.toFixed(2)+'</strong></div>'+link+'</article>';
- }).join('')+'<p class="no-picks">These are individual bookmaker prices, not pre-priced accumulators. All quotes may change.</p>';
+ el.innerHTML=suggestedBuilders.map((b,i)=>
+  '<article class="odds-offer combo-card"><div class="odds-offer-header"><div>'+
+  '<span class="overline">'+escapeHtml(b.game)+'</span><h3>'+b.legs.length+
+  '-leg bet builder idea</h3><small>Source: '+escapeHtml(b.bookmaker)+
+  ' · Individual market quotes only</small></div>'+
+  '<div class="combo-odds"><strong class="bigodds">~'+b.estimate.toFixed(2)+'</strong><small>Illustrative total</small></div></div>'+
+  '<ol class="combo-legs">'+b.legs.map(leg=>
+   '<li><strong>'+escapeHtml(leg.player)+'</strong> · '+escapeHtml(leg.side+' '+leg.line+' '+(leg.market_label||leg.market))+
+   ' <small>('+leg.odds.toFixed(2)+' single price)</small></li>').join('')+'</ol>'+
+  '<p class="no-picks">The estimated total multiplies standalone prices. A real bet365 Bet Builder can offer different odds, restrict legs or reject the combination.</p>'+
+  '<div class="combo-actions"><button type="button" class="compare-btn" data-copy-suggested="'+i+'">Copy builder</button>'+
+  '<button type="button" class="compare-btn" data-load-suggested="'+i+'">Add to my builder</button>'+
+  '<a class="check-bookmaker" href="https://www.bet365.com/" target="_blank" rel="noopener noreferrer">Open bet365 ↗</a></div></article>'
+ ).join('');
 }
+document.addEventListener('click',async e=>{
+ const copy=e.target.closest('[data-copy-suggested]');
+ const load=e.target.closest('[data-load-suggested]');
+ if(!copy&&!load)return;
+ const index=Number((copy||load).dataset[copy?'copySuggested':'loadSuggested']);
+ const builder=suggestedBuilders[index];if(!builder)return;
+ if(copy){
+  const content=suggestedBuilderText(builder);
+  try{await navigator.clipboard.writeText(content);copy.textContent='Copied ✓';}
+  catch{window.prompt('Copy bet builder selections:',content);}
+ }else{
+  builderFixture=builder.game_id;
+  builderLegs=builder.legs.map(o=>({
+   game_id:String(o.game_id),player:String(o.player),
+   market:String(o.market),market_label:String(o.market_label||o.market),
+   side:o.side,line:Number(o.line),odds:Number(o.odds),
+   bookmaker:String(o.bookmaker)
+  }));
+  renderBuilder();
+  renderLiveProps();
+  document.querySelector('#live-props')?.scrollIntoView({behavior:'smooth'});
+ }
+});
 document.querySelectorAll('[data-odds-tier]').forEach(b=>b.addEventListener('click',()=>{
  activeOddsTier=Number(b.dataset.oddsTier);
  if(!livePriceChecked)loadLiveOddsBoard();else renderOddsBoard();
