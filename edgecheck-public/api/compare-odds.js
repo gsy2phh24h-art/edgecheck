@@ -1,6 +1,7 @@
 'use strict';
-// OddsLink NFL prop comparison. The server keeps ODDSLINK_API_KEY private.
-const MARKET = Object.freeze({
+// EdgeCheck: private ParlayAPI bookmaker comparison for upcoming NFL props.
+// Never reveal PARLAY_API_KEY. Quotes are historical snapshots, not guarantees.
+const MARKETS = Object.freeze({
   passing_yards:'player_pass_yds',
   rushing_yards:'player_rush_yds',
   receiving_yards:'player_reception_yds',
@@ -9,97 +10,98 @@ const MARKET = Object.freeze({
   attempts:'player_pass_attempts',
   carries:'player_rush_attempts'
 });
-const UK_BOOKS = new Set([
-  'bet365','skybet','paddypower','betfair','betfair sportsbook',
-  'williamhill','ladbrokes','coral','unibet','betway','888sport',
-  'virginbet','boylesports','betfred','sportingindex','kwiff',
-  'spreadex','betvictor','talksportbet','10bet'
-]);
-const normalise = s => String(s||'').toLowerCase().normalize('NFKD')
+const UK_BOOKS = new Set(['bet365','unibet']); // Verified bookmaker identities, not regional licence.
+const norm = s => String(s||'').normalize('NFKD').toLowerCase()
   .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-const UK_KEYS = new Set([...UK_BOOKS].map(normalise));
-const isUK = b => UK_KEYS.has(normalise(b.key)) || UK_KEYS.has(normalise(b.title));
-const validLink = s => {
-  try {const u=new URL(s);return u.protocol==='https:'?u.href:null;}
-  catch{return null;}
+const respond = (res, value, code=200) => {
+  res.setHeader('Cache-Control','public, s-maxage=300, stale-while-revalidate=120');
+  return res.status(code).json(value);
 };
-function respond(res,status,payload){
-  res.setHeader('Cache-Control','public, s-maxage=180, stale-while-revalidate=60');
-  return res.status(status).json(payload);
-}
-async function getJson(url,key){
+const americanToDecimal = v => {
+  const n=Number(v);
+  if(!Number.isFinite(n)||n===0) return null;
+  return n>0 ? 1+n/100 : 1+100/Math.abs(n);
+};
+const urlIfSafe = v => {
+  try{const u=new URL(v);return u.protocol==='https:'?u.href:null;}catch{return null;}
+};
+async function fetchProps(key, markets) {
+  const params=new URLSearchParams({
+    markets:markets.join(','), bookkeepers:'', maxAgeSec:'1800', limit:'10000'
+  });
+  params.delete('bookkeepers');
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),10000);
-  try{
-    const r=await fetch(url,{signal:controller.signal,headers:{'X-API-Key':key,Accept:'application/json'}});
-    if(!r.ok){
-      let code='PROVIDER_ERROR';
-      try{const body=await r.json();code=String(body?.error?.code||code);}
-      catch{}
-      const e=new Error('Provider rejected request');
-      e.status=r.status;e.code=code;throw e;
+  try {
+    const response=await fetch('https://parlay-api.com/v1/sports/americanfootball_nfl/props?'+params,
+      {signal:controller.signal,headers:{'X-API-Key':key,Accept:'application/json'}});
+    if (!response.ok) {
+      const err=new Error('Provider returned '+response.status);err.status=response.status;
+      throw err;
     }
-    return await r.json();
+    const rows=await response.json();
+    return Array.isArray(rows) ? rows : (Array.isArray(rows.rows)? rows.rows : []);
   } finally {clearTimeout(timeout);}
 }
-module.exports=async function handler(req,res){
-  if(req.method!=='GET')return respond(res,405,{status:'method_not_allowed'});
-  const key=process.env.ODDSLINK_API_KEY;
-  if(!key)return respond(res,200,{status:'not_configured',comparisons:[]});
+module.exports=async function handler(req,res) {
+  if(req.method!=='GET') return respond(res,{status:'method_not_allowed'},405);
+  const key=process.env.PARLAY_API_KEY;
+  if(!key)return respond(res,{status:'not_configured',comparisons:[]});
   const id=String(req.query.game||'');
-  if(!/^\d{7,15}$/.test(id))return respond(res,400,{status:'invalid_game',comparisons:[]});
+  if(!/^\d{7,15}$/.test(id))return respond(res,{status:'invalid_game',comparisons:[]},400);
   let feed;
   try{feed=require('../data/game-picks.json');}
-  catch{return respond(res,200,{status:'no_picks',comparisons:[]});}
+  catch{return respond(res,{status:'no_picks',comparisons:[]});}
   const game=(feed.games||[]).find(g=>String(g.id)===id);
-  if(!game||Date.parse(game.kickoff)<=Date.now())
-    return respond(res,200,{status:'not_upcoming',comparisons:[]});
-  const selections=(game.suggestions||[]).filter(s=>MARKET[s.market]&&Number.isInteger(Number(s.line))).slice(0,8);
-  if(!selections.length)return respond(res,200,{status:'no_selections',comparisons:[]});
-  const markets=[...new Set(selections.map(s=>MARKET[s.market]))];
-  const q=new URLSearchParams({markets:markets.join(','),oddsFormat:'decimal'});
-  try{
-    // One paid request for all upcoming NFL fixtures, filtered to our current matchup.
-    const data=await getJson('https://oddslink.app/v1/sports/nfl/props?'+q.toString(),key);
-    const event=(Array.isArray(data)?data:[]).find(e=>
-      normalise(e.home_team)===normalise(game.home) &&
-      normalise(e.away_team)===normalise(game.away) &&
-      Math.abs(Date.parse(e.commence_time)-Date.parse(game.kickoff))<7200000);
-    if(!event)return respond(res,200,{status:'no_event_coverage',comparisons:[]});
+  const kickoff=Date.parse(game?.kickoff);
+  if(!game||!Number.isFinite(kickoff)||kickoff<=Date.now())
+    return respond(res,{status:'not_upcoming',comparisons:[]});
+  const picks=(game.suggestions||[]).filter(s=>MARKETS[s.market]&&Number.isFinite(Number(s.line))).slice(0,8);
+  if(!picks.length)return respond(res,{status:'no_selections',comparisons:[]});
+  try {
+    const rows=await fetchProps(key,[...new Set(picks.map(s=>MARKETS[s.market]))]);
     const now=Date.now();
-    const comparisons=selections.map(s=>{
+    const comps=picks.map(p=>{
       const quotes=[];
-      for(const prop of event.props||[]){
-        if(!prop || prop.period || prop.stat!==MARKET[s.market] ||
-          normalise(prop.player)!==normalise(s.player) ||
-          Math.abs(Number(prop.point)-(Number(s.line)-0.5))>0.001)continue;
-        const book=prop.bookmaker||{};
-        if(!isUK(book))continue;
-        const checked=Date.parse(book.last_update||'');
-        if(!Number.isFinite(checked)||checked>now+120000||now-checked>1800000)continue;
-        for(const outcome of prop.outcomes||[]){
-          if(outcome.name!=='Over'||!Number.isFinite(Number(outcome.price))||Number(outcome.price)<=1)continue;
-          const url=validLink(book.link);
-          quotes.push({bookmaker:String(book.title||book.key||''),
-            odds:Number(outcome.price),checked_at:new Date(checked).toISOString(),
-            url,link_type:url?'event':null});
-        }
+      for(const row of rows){
+        if(!row || !UK_BOOKS.has(norm(row.bookmaker)))continue;
+        if(norm(row.player)!==norm(p.player)||row.market_key!==MARKETS[p.market])continue;
+        // 40+ on a whole-number stat is equivalent to Over 39.5.
+        const line=Number(row.line);
+        if(!Number.isFinite(line) || Math.abs(line-(Number(p.line)-0.5))>0.001)continue;
+        if(row.period && row.period!=='FULL')continue;
+        if(norm(row.home_team)!==norm(game.home)||norm(row.away_team)!==norm(game.away))continue;
+        const quotedKickoff=Date.parse(row.commence_time);
+        if(!Number.isFinite(quotedKickoff)||Math.abs(quotedKickoff-kickoff)>7200000)continue;
+        const checked=Number.isFinite(Number(row.last_update))?
+          new Date(Number(row.last_update)).getTime():Date.parse(row.last_update);
+        const age=Number.isFinite(Number(row.age_seconds))?Number(row.age_seconds)*1000:null;
+        const observation=Number.isFinite(checked)?checked:(age!==null?now-age:NaN);
+        if(!Number.isFinite(observation)||observation>now+120000||now-observation>1800000)continue;
+        const price=americanToDecimal(row.over_price);
+        if(!price||price<=1||price>1000)continue;
+        const link=urlIfSafe(row.selection_url||row.market_url||row.event_url||row.bookmaker_url);
+        quotes.push({
+          bookmaker:String(row.bookmaker_title||row.bookmaker),
+          odds:Math.round(price*100)/100,
+          checked_at:new Date(observation).toISOString(),
+          url:link,
+          link_type:link?'event':null
+        });
       }
       quotes.sort((a,b)=>b.odds-a.odds);
-      return {player:s.player,market:s.market,line:s.line,label:s.label,quotes:quotes.slice(0,8)};
+      return {player:p.player,market:p.market,line:p.line,label:p.label,quotes:quotes.slice(0,8)};
     });
-    const any=comparisons.some(s=>s.quotes.length);
-    return respond(res,200,{
-      status:any?'ok':'no_exact_lines',provider:'OddsLink',
-      event:game.away+' at '+game.home,retrieved_at:new Date().toISOString(),comparisons
+    const any=comps.some(x=>x.quotes.length);
+    return respond(res,{
+      status:any?'ok':'no_exact_lines',provider:'ParlayAPI',
+      event:game.away+' at '+game.home,retrieved_at:new Date(now).toISOString(),
+      comparisons:comps
     });
-  }catch(err){
-    if(err.code==='PLAN_REQUIRED'||err.status===403)
-      return respond(res,200,{status:'plan_required',message:'OddsLink player props require the Growth plan or higher.',comparisons:[]});
-    if(err.code==='INVALID_MARKET')
-      return respond(res,200,{status:'market_not_supported',message:'OddsLink did not accept a requested player-prop market.',comparisons:[]});
-    if(err.status===401)
-      return respond(res,200,{status:'key_invalid',comparisons:[]});
-    return respond(res,200,{status:'provider_unavailable',comparisons:[]});
+  }catch(error){
+    const status=error.status===401?'key_invalid':
+      error.status===402||error.status===403?'plan_required':
+      error.status===429?'quota_exhausted':'provider_unavailable';
+    return respond(res,{status,comparisons:[]});
   }
 };
