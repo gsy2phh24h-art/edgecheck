@@ -46,9 +46,9 @@ async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
     </article>`}).join('');
   // The odds board and builder depend on the latest matchup IDs.
   if(typeof renderLiveProps==='function')renderLiveProps();
-  loadLiveOddsBoard();
+  if(document.body.dataset.page==='builders')loadLiveOddsBoard();
  }catch(e){$('picks-date').textContent='No current suggestions';$('picks-updated').textContent='';out.innerHTML='<div class="value-empty"><strong>Today’s suggestions are not available yet.</strong><p>Game picks will appear automatically after the statistics and matchup data have been imported. No unverified recommendations are shown.</p></div>';}}
-loadGamePicks();
+if(['picks','builders','props'].includes(document.body.dataset.page))loadGamePicks();
 
 
 // Real decimal-odds board. Individual verified quotes only; never invent acca prices.
@@ -231,6 +231,11 @@ document.addEventListener('click',async e=>{
    side:o.side,line:Number(o.line),odds:Number(o.odds),
    bookmaker:String(o.bookmaker)
   }));
+  if(document.body.dataset.page!=='props'){
+    try{sessionStorage.setItem('edgecheck_pending_builder',JSON.stringify({game_id:builderFixture,legs:builderLegs}));}catch{}
+    window.location.href='/props.html';
+    return;
+  }
   renderBuilder();
   renderLiveProps();
   document.querySelector('#live-props')?.scrollIntoView({behavior:'smooth'});
@@ -361,6 +366,11 @@ function addBuilderLeg(offer){
  if(same>=0)builderLegs.splice(same,1,leg);
  else if(builderLegs.length<8)builderLegs.push(leg);
  else{$('props-status').textContent='This builder has a maximum of eight selections.';return;}
+ if(document.body.dataset.page!=='props'){
+  try{sessionStorage.setItem('edgecheck_pending_builder',JSON.stringify({game_id:builderFixture,legs:builderLegs}));}catch{}
+  window.location.href='/props.html';
+  return;
+ }
  renderBuilder();renderLiveProps();
 }
 function filteredProps(){
@@ -448,5 +458,18 @@ document.addEventListener('click',e=>{
   }
  }catch{}
 });
-renderBuilder();
-loadPlayerProps();
+if(document.body.dataset.page==='props'){
+ try {
+  const saved=sessionStorage.getItem('edgecheck_pending_builder');
+  if(saved){
+    sessionStorage.removeItem('edgecheck_pending_builder');
+    const parsed=JSON.parse(saved);
+    if(/^\\d{7,15}$/.test(String(parsed.game_id))&&Array.isArray(parsed.legs)){
+      builderFixture=String(parsed.game_id);
+      builderLegs=parsed.legs.filter(l=>l&&String(l.game_id)===builderFixture&&l.player&&l.market&&Number.isFinite(Number(l.line))).slice(0,8);
+    }
+  }
+ }catch{}
+ renderBuilder();
+ loadPlayerProps();
+}
