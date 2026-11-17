@@ -126,36 +126,51 @@ def defensive_context(stats):
     return context
 
 def candidate(player, most_recent_week):
+    """Produce a balanced and a higher-risk statistical target without implying true odds."""
     games = player.get("games", [])
     if len(games) < 5 or not player.get("team") or not player.get("name"):
         return None
     if most_recent_week - int(games[0].get("week", 0)) > 2:
         return None
-    position = player.get("position")
-    if position == "FB":
-        position = "RB"
+    position = "RB" if player.get("position") == "FB" else player.get("position")
     available = MARKETS.get(position, [])
-    options = []
+    candidates = []
     for field, lines, description in available:
-        last5 = [g[field] for g in games[:5] if g.get(field) is not None]
-        last10 = [g[field] for g in games[:10] if g.get(field) is not None]
-        if len(last5) != 5 or len(last10) < 5:
+        recent5 = [g.get(field) for g in games[:5]]
+        recent10 = [g.get(field) for g in games[:10]]
+        if any(v is None for v in recent5) or len(recent10) < 7 or any(v is None for v in recent10):
             continue
+        avg5 = sum(float(v) for v in recent5) / 5
         for line in lines:
-            hits5 = sum(float(value) >= line for value in last5)
-            hits10 = sum(float(value) >= line for value in last10)
-            if hits5 < 4 or hits10 / len(last10) < 0.65:
+            hits5 = sum(float(v) >= line for v in recent5)
+            hits10 = sum(float(v) >= line for v in recent10)
+            rate10 = hits10 / len(recent10)
+            # These labels describe historical difficulty, not forecast probabilities.
+            tier = "balanced" if hits5 >= 3 and rate10 >= 0.55 else (
+                "higher" if hits5 >= 2 and rate10 >= 0.40 else None)
+            if not tier:
                 continue
-            # Higher of several consistently-hit thresholds, without claiming probability.
-            options.append((hits5, hits10 / len(last10), line, field, description))
-    if not options:
+            # Prefer a substantial target close to recent average over a tiny 5/5 line.
+            closeness = min(line / max(avg5, 1), 1.5)
+            score = (closeness * 10) + (line / max(lines) * 4) + rate10 * 2
+            candidates.append({
+                "player": player["name"], "team": player["team"],
+                "label": f"{line}+ {description}", "market": field, "line": line,
+                "hits": hits5, "sample": 5, "hits_10_rate": round(rate10 * 100),
+                "player_id": player["id"], "risk_tier": tier,
+                "score": round(score, 2),
+            })
+    if not candidates:
         return None
-    hits5, rate10, line, field, description = max(options, key=lambda v: (v[0], v[1], v[2]))
-    return {
-        "player": player["name"], "team": player["team"], "label": f"{line}+ {description}",
-        "market": field, "line": line, "hits": hits5, "sample": 5,
-        "hits_10_rate": round(rate10 * 100), "player_id": player["id"],
-    }
+    choices = {}
+    for tier in ("balanced", "higher"):
+        eligible = [v for v in candidates if v["risk_tier"] == tier]
+        if eligible:
+            # Don't simply rank by 5/5 hit rate; favour more meaningful targets.
+            choices[tier] = max(eligible, key=lambda x: (x["score"], x["line"]))
+    if not choices:
+        return None
+    return choices
 
 def build(stats, games):
     players = stats.get("players", [])
@@ -196,14 +211,17 @@ def build(stats, games):
             status = roster[name]
             if any(flag in status for flag in unavailable):
                 continue
-            item = candidate(p, latest_week)
-            if item:
-                item["roster_verified"] = True
-                item["availability_note"] = "Team roster verified. Game-day injury and active status must still be checked."
-                item["opponent"] = away if team == home else home
-                suggestions.append(item)
-        suggestions.sort(key=lambda s: (-s["hits"], -s["hits_10_rate"], -s["line"], s["player"]))
-        game["suggestions"] = suggestions[:5]
+            items = candidate(p, latest_week)
+            if items:
+                for tier, item in items.items():
+                    item["roster_verified"] = True
+                    item["availability_note"] = "Team roster verified. Game-day injury and active status must still be checked."
+                    item["opponent"] = away if team == home else home
+                    suggestions.append(item)
+        for tier, field in (("balanced", "suggestions"), ("higher", "higher_risk_suggestions")):
+            eligible = [s for s in suggestions if s["risk_tier"] == tier]
+            eligible.sort(key=lambda s: (-s["score"], -s["line"], s["player"]))
+            game[field] = eligible[:5]
         game["verification_note"] = "; ".join(errors) if errors else "Players checked against current team rosters; injuries and game-day actives not fully verified."
         game.pop("home_code")
         game.pop("away_code")
@@ -220,7 +238,7 @@ def main():
         "date_uk": now.astimezone(UK).date().isoformat(),
         "updated_at": now.isoformat(),
         "source": "ESPN NFL scoreboard (unofficial public endpoint) and nflverse weekly player logs",
-        "methodology": "Last five games 4/5+, last ten games at least 65%, with current roster verification. Historical filters, not betting probabilities; game-day availability must be checked.",
+        "methodology": "Balanced: 3/5+ recent hits and 55%+ across available last ten; higher risk: 2/5+ and 40%+. Both favour more meaningful thresholds. These are historical filters, not predicted probabilities; game-day actives still require checking.",
         "games": build(stats, games),
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
