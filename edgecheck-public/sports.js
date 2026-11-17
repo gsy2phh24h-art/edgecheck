@@ -75,6 +75,8 @@ async function render(){
 }
 document.querySelectorAll('[data-league]').forEach(button=>button.addEventListener('click',()=>{
  chosen=button.dataset.league;
+ chosenGame='';chosenMarket='';selectedLegs=[];renderSelectionList();
+ loadSportsPrices();
  document.querySelectorAll('[data-league]').forEach(b=>{const yes=b===button;b.classList.toggle('active',yes);b.setAttribute('aria-pressed',String(yes));});
  render();
 }));
@@ -101,7 +103,7 @@ let combos=[];
 const priceBands={2:[1.8,2.25],3:[2.7,3.35],4:[3.6,4.45],6:[5.4,6.65]};
 const bookLink=legs=>{
  const valid=(legs||[]).find(o=>o.bookmaker_key==='bet365'&&o.url);
- if(valid){try{const u=new URL(valid.url);if(u.protocol==='https:'&&/(^|\\.)bet365\\.(com|co\\.uk)$/i.test(u.hostname))return u.href;}catch{}}
+ if(valid){try{const u=new URL(valid.url);if(u.protocol==='https:'&&/(^|\.)bet365\.(com|co\.uk)$/i.test(u.hostname))return u.href;}catch{}}
  return 'https://www.bet365.com/';
 };
 function selectionText(legs){
@@ -281,7 +283,7 @@ if(board){
  document.getElementById('sports-share').addEventListener('click',e=>copySelectionText(shareUrl(selectedLegs),e.target));
  document.getElementById('sports-open').addEventListener('click',()=>{
   const url=bookLink(selectedLegs);
-  const tab=window.open(url,'_blank','noopener,noreferrer');if(!tab)window.location.assign(url);
+  const tab=window.open(url,'_blank');if(tab)tab.opener=null;else window.location.assign(url);
   copySelectionText(selectionText(selectedLegs));
  });
  comboBox.addEventListener('click',e=>{
