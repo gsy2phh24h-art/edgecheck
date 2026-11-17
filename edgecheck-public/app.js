@@ -196,3 +196,146 @@ document.addEventListener('click', e=>{
  document.querySelectorAll('[data-risk-choice]').forEach(b=>{const selected=b.dataset.riskChoice===tier;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
  document.querySelectorAll('[data-risk-group]').forEach(el=>el.hidden=el.dataset.riskGroup!==tier);
 });
+
+
+// Copyable single-game bet365 player-prop list. Bet365 does not expose a
+// documented public import API; copied text is for manual selection.
+let builderLegs=[];
+let builderFixture='';
+let builderAllOffers=[];
+let builderStatus='';
+let builderBusy=false;
+const builderLabel=o=>o.player+' | '+o.side+' '+o.line+' '+o.market_label;
+function builderGames(){
+ const select=$('prop-game');
+ if(!select)return;
+ const existing=select.value;
+ const games=currentUpcomingGames.filter(g=>Date.parse(g.kickoff)>Date.now());
+ select.innerHTML='<option value="">Choose a fixture…</option>'+games.map(g=>
+   '<option value="'+escapeHtml(String(g.id))+'">'+escapeHtml(g.away+' at '+g.home)+' · '+escapeHtml(prettyKickoff(g.kickoff))+'</option>').join('');
+ select.value=games.some(g=>String(g.id)===existing)?existing:(builderFixture||String(games[0]?.id||''));
+ if(!select.value&&games[0])select.value=String(games[0].id);
+}
+function builderFixtureName(id){
+ const g=currentUpcomingGames.find(g=>String(g.id)===String(id));
+ return g?g.away+' at '+g.home:'NFL fixture';
+}
+function renderBuilder(){
+ const box=$('builder-legs');if(!box)return;
+ $('builder-count').textContent=String(builderLegs.length);
+ $('builder-game').textContent=builderFixture?builderFixtureName(builderFixture):'Choose an NFL fixture and add player props.';
+ box.innerHTML=builderLegs.length?builderLegs.map((leg,i)=>{
+  const price=leg.odds?' · '+Number(leg.odds).toFixed(2)+' at '+escapeHtml(leg.bookmaker):' · target only, no verified price';
+  return '<div class="builder-leg"><div><strong>'+escapeHtml(builderLabel(leg))+'</strong><small>'+price+'</small></div><button type="button" data-builder-remove="'+i+'" aria-label="Remove '+escapeHtml(leg.player)+'">×</button></div>';
+ }).join(''):'<p class="no-picks">No selections added yet.</p>';
+ $('copy-builder').disabled=!builderLegs.length;
+}
+function addBuilderLeg(offer){
+ if(!offer||!offer.player||!offer.market||!Number.isFinite(Number(offer.line)))return;
+ const id=String(offer.game_id||'');
+ if(!id)return;
+ if(builderFixture&&builderFixture!==id){
+  // A bet365 Bet Builder is for ONE fixture, never concatenate cross-game bets.
+  builderLegs=[];
+ }
+ builderFixture=id;
+ const gameSelect=$('prop-game');
+ if(gameSelect)gameSelect.value=id;
+ const same=builderLegs.findIndex(v=>v.player===offer.player&&v.market===offer.market);
+ const leg={game_id:id,player:String(offer.player),market:String(offer.market),
+  market_label:String(offer.market_label||marketNames[offer.market]||offer.market),
+  side:offer.side==='Under'?'Under':'Over',line:Number(offer.line),
+  odds:Number.isFinite(Number(offer.odds))&&Number(offer.odds)>1?Number(offer.odds):null,
+  bookmaker:String(offer.bookmaker||'')};
+ if(same>=0)builderLegs.splice(same,1,leg);
+ else if(builderLegs.length<8)builderLegs.push(leg);
+ else{$('props-status').textContent='This builder has a maximum of eight selections.';return;}
+ renderBuilder();renderLiveProps();
+}
+function filteredProps(){
+ const gameId=$('prop-game')?.value||'';
+ const market=$('prop-market')?.value||'';
+ const rows=builderAllOffers.filter(o=>String(o.game_id)===gameId&&(!market||o.market===market)&&
+  Date.parse(o.kickoff)>Date.now()&&Number(o.odds)>1);
+ const deduped=new Map();
+ for(const o of rows){
+  const key=[o.player,o.market,o.side,o.line].join('|');
+  const previous=deduped.get(key);
+  // Prefer a quote explicitly sourced from bet365, otherwise the top comparable price.
+  if(!previous||(o.bookmaker_key==='bet365'&&previous.bookmaker_key!=='bet365')||
+    (o.bookmaker_key===previous.bookmaker_key&&o.odds>previous.odds))deduped.set(key,o);
+ }
+ return Array.from(deduped.values()).sort((a,b)=>a.player.localeCompare(b.player)||a.market_label.localeCompare(b.market_label)||Number(a.line)-Number(b.line)).slice(0,75);
+}
+function renderLiveProps(){
+ const el=$('live-props-results');if(!el)return;
+ builderGames();
+ const rows=filteredProps();
+ $('props-status').textContent=builderStatus||'Showing '+rows.length+' priced props · quotes are not guaranteed at bet365';
+ if(!rows.length){
+  el.innerHTML='<div class="value-empty"><strong>No fresh priced props for this fixture and market.</strong><p>'+escapeHtml(builderStatus||'Try another fixture or market, or add a statistical target from the suggested picks. No odds will be invented.')+'</p></div>';
+  return;
+ }
+ el.innerHTML='<div class="prop-offer-list">'+rows.map(o=>{
+  const is365=o.bookmaker_key==='bet365';
+  const label=o.side+' '+o.line+' '+o.market_label;
+  const added=builderLegs.some(l=>l.game_id===o.game_id&&l.player===o.player&&l.market===o.market&&l.line===o.line&&l.side===o.side);
+  return '<div class="prop-offer"><div class="prop-offer-info"><strong>'+escapeHtml(o.player)+'</strong><small>'+escapeHtml(label)+'</small><small>'+escapeHtml(o.bookmaker)+' · '+escapeHtml(is365?'bet365 source quote':'Reference quote, not a bet365 price')+' · '+escapeHtml(new Date(o.checked_at).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}))+' UK</small></div><b>'+Number(o.odds).toFixed(2)+'</b><button type="button" data-add-live="'+escapeHtml(o.id)+'">'+(added?'Change':'Add')+'</button></div>';
+ }).join('')+'</div>';
+}
+async function loadPlayerProps(force=false){
+ if(builderBusy)return;
+ builderBusy=true;builderStatus='Checking live player props…';renderLiveProps();
+ try{
+  const data=await getPropFeed(force);
+  builderAllOffers=Array.isArray(data.offers)?data.offers:[];
+  builderStatus=data.status==='ok'?'':explainPropFeed(data.status);
+ }catch(e){builderAllOffers=[];builderStatus='Player-prop feed could not be loaded.';}
+ finally{builderBusy=false;renderLiveProps();}
+}
+$('prop-game')?.addEventListener('change',e=>{
+ if(builderLegs.length&&builderFixture&&builderFixture!==e.target.value){
+   builderLegs=[];builderFixture=e.target.value;renderBuilder();
+ }
+ renderLiveProps();
+});
+$('prop-market')?.addEventListener('change',renderLiveProps);
+$('load-props')?.addEventListener('click',()=>{propFeedAt=0;loadPlayerProps(true);loadLiveOddsBoard(true);});
+$('live-props-results')?.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-add-live]');if(!btn)return;
+ const offer=builderAllOffers.find(o=>o.id===btn.dataset.addLive);
+ if(offer)addBuilderLeg(offer);
+});
+$('builder-legs')?.addEventListener('click',e=>{
+ const btn=e.target.closest('[data-builder-remove]');if(!btn)return;
+ const i=Number(btn.dataset.builderRemove);
+ if(Number.isInteger(i)&&i>=0&&i<builderLegs.length){builderLegs.splice(i,1);renderBuilder();renderLiveProps();}
+});
+$('clear-builder')?.addEventListener('click',()=>{builderLegs=[];builderFixture='';renderBuilder();renderLiveProps();});
+$('copy-builder')?.addEventListener('click',async()=>{
+ if(!builderLegs.length)return;
+ const text=['EdgeCheck NFL Bet Builder selections','Game: '+builderFixtureName(builderFixture),
+   ...builderLegs.map((l,i)=>(i+1)+'. '+builderLabel(l)),
+   '','Enter these selections manually at bet365 → Bet Builder.',
+   'Check actual available lines, injuries and the combined Bet Builder odds. These are NOT pre-priced combined odds.'].join('\n');
+ try{
+  await navigator.clipboard.writeText(text);
+  const btn=$('copy-builder');btn.textContent='Copied selections ✓';
+  setTimeout(()=>btn.textContent='Copy bet builder selections',1800);
+ }catch{window.prompt('Copy your bet builder selections:',text);}
+});
+document.addEventListener('click',e=>{
+ const button=e.target.closest('[data-add-suggested]');if(!button)return;
+ const payload=button.dataset.addSuggested;
+ try{
+  const p=JSON.parse(decodeURIComponent(payload));
+  if(p&&Number.isFinite(Number(p.line))){
+   addBuilderLeg({game_id:p.game_id,player:p.player,market:p.market,
+    market_label:marketNames[p.market]||p.market,side:'Over',
+    line:Number(p.line)-0.5,bookmaker:'',odds:null});
+   document.querySelector('#live-props')?.scrollIntoView({behavior:'smooth'});
+  }
+ }catch{}
+});
+renderBuilder();
+loadPlayerProps();
