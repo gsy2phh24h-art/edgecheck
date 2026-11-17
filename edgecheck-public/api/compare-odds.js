@@ -1,113 +1,105 @@
 'use strict';
-
-// Server-side UK NFL prop price comparison. Never expose the provider API key.
+// OddsLink NFL prop comparison. The server keeps ODDSLINK_API_KEY private.
 const MARKET = Object.freeze({
-  passing_yards: 'player_pass_yds',
-  rushing_yards: 'player_rush_yds',
-  receiving_yards: 'player_reception_yds',
-  receptions: 'player_receptions',
-  completions: 'player_pass_completions',
-  attempts: 'player_pass_attempts',
-  carries: 'player_rush_attempts'
+  passing_yards:'player_pass_yds',
+  rushing_yards:'player_rush_yds',
+  receiving_yards:'player_reception_yds',
+  receptions:'player_receptions',
+  completions:'player_pass_completions',
+  attempts:'player_pass_attempts',
+  carries:'player_rush_attempts'
 });
-const norm = v => String(v || '').toLowerCase().normalize('NFKD')
+const UK_BOOKS = new Set([
+  'bet365','skybet','paddypower','betfair','betfair sportsbook',
+  'williamhill','ladbrokes','coral','unibet','betway','888sport',
+  'virginbet','boylesports','betfred','sportingindex','kwiff',
+  'spreadex','betvictor','talksportbet','10bet'
+]);
+const normalise = s => String(s||'').toLowerCase().normalize('NFKD')
   .replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-const safeUrl = v => {
-  try { const u = new URL(v); return u.protocol === 'https:' ? u.href : null; }
-  catch { return null; }
+const UK_KEYS = new Set([...UK_BOOKS].map(normalise));
+const isUK = b => UK_KEYS.has(normalise(b.key)) || UK_KEYS.has(normalise(b.title));
+const validLink = s => {
+  try {const u=new URL(s);return u.protocol==='https:'?u.href:null;}
+  catch{return null;}
 };
-const respond = (res, status, value) => {
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, s-maxage=180, stale-while-revalidate=60');
-  return res.status(status).json(value);
-};
-async function fetchJson(url) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8500);
-  try {
-    const response = await fetch(url, {signal: controller.signal, headers:{Accept:'application/json'}});
-    if (!response.ok) throw Error('Provider returned HTTP ' + response.status);
-    return await response.json();
-  } finally { clearTimeout(timeout); }
+function respond(res,status,payload){
+  res.setHeader('Cache-Control','public, s-maxage=180, stale-while-revalidate=60');
+  return res.status(status).json(payload);
 }
-module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') return respond(res, 405, {status:'method_not_allowed'});
-  const key = process.env.THE_ODDS_API_KEY;
-  if (!key) return respond(res, 200, {status:'not_configured', message:'Connect a licensed odds data key to compare bookmaker prices.', comparisons:[]});
-  let feed;
-  try { feed = require('../data/game-picks.json'); }
-  catch { return respond(res, 200, {status:'no_picks', comparisons:[]}); }
-  const id = String(req.query.game || '').trim();
-  if (!/^\d{7,15}$/.test(id)) return respond(res, 400, {status:'invalid_game'});
-  const game = (feed.games || []).find(g => String(g.id) === id);
-  const kick = Date.parse(game?.kickoff || '');
-  if (!game || !Number.isFinite(kick) || kick <= Date.now()) return respond(res, 200, {status:'not_upcoming', comparisons:[]});
-  const selections = (game.suggestions || []).filter(s => MARKET[s.market] && Number.isInteger(Number(s.line))).slice(0, 8);
-  if (!selections.length) return respond(res, 200, {status:'no_selections', comparisons:[]});
-  const base = 'https://api.the-odds-api.com/v4/sports/americanfootball_nfl';
-  const eventsUrl = base + '/events?apiKey=' + encodeURIComponent(key);
-  try {
-    const events = await fetchJson(eventsUrl);
-    const event = (Array.isArray(events) ? events : []).find(e =>
-      norm(e.home_team) === norm(game.home) &&
-      norm(e.away_team) === norm(game.away) &&
-      Math.abs(Date.parse(e.commence_time) - kick) < 7200000
-    );
-    if (!event) return respond(res, 200, {status:'no_event_coverage', comparisons:[]});
-    const markets = [...new Set(selections.map(s => MARKET[s.market]))];
-    // Alternate markets are needed to match exact 40+, 50+, etc thresholds.
-    const marketKeys = markets.flatMap(m => [m, m+'_alternate']).join(',');
-    const url = base+'/events/'+encodeURIComponent(event.id)+'/odds?'+
-      'apiKey='+encodeURIComponent(key)+'&regions=uk&oddsFormat=decimal&includeLinks=true&markets='+encodeURIComponent(marketKeys);
-    const quote = await fetchJson(url);
-    const now = Date.now();
-    // Distinguish missing UK bookmaker prop coverage from unavailable exact lines.
-    const books = Array.isArray(quote.bookmakers) ? quote.bookmakers : [];
-    const pricedMarketKeys = new Set(books.flatMap(book => (book.markets || []).map(m => m.key)));
-    const hasAnyRequestedProp = [...pricedMarketKeys].some(key => markets.some(m => key === m || key === m+'_alternate'));
-    if (!books.length || !hasAnyRequestedProp) {
-      return respond(res, 200, {
-        status:'no_uk_prop_coverage',
-        message:'This provider has not returned UK bookmaker NFL player-prop markets for this game. Main match odds may still be available.',
-        comparisons:[]
-      });
+async function getJson(url,key){
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),10000);
+  try{
+    const r=await fetch(url,{signal:controller.signal,headers:{'X-API-Key':key,Accept:'application/json'}});
+    if(!r.ok){
+      let code='PROVIDER_ERROR';
+      try{const body=await r.json();code=String(body?.error?.code||code);}
+      catch{}
+      const e=new Error('Provider rejected request');
+      e.status=r.status;e.code=code;throw e;
     }
-    const comparisons = selections.map(s => {
-      const correctPoint = Number(s.line)-0.5;
-      const matches = [];
-      for (const book of quote.bookmakers || []) {
-        for (const market of book.markets || []) {
-          if (![MARKET[s.market], MARKET[s.market]+'_alternate'].includes(market.key)) continue;
-          const updated = Date.parse(market.last_update || book.last_update || '');
-          if (!Number.isFinite(updated) || updated > now+120000 || now-updated > 1800000) continue;
-          for (const outcome of market.outcomes || []) {
-            if (norm(outcome.description) !== norm(s.player) || norm(outcome.name) !== 'over') continue;
-            if (Math.abs(Number(outcome.point)-correctPoint) > 0.001) continue;
-            const price = Number(outcome.price);
-            if (!Number.isFinite(price) || price <= 1) continue;
-            // Prefer selection link; otherwise distinguish market/event link.
-            const selectionLink = safeUrl(outcome.link);
-            const marketLink = safeUrl(market.link);
-            const eventLink = safeUrl(book.link || quote.link);
-            matches.push({
-              bookmaker: String(book.title || book.key || ''),
-              odds: price,
-              checked_at: new Date(updated).toISOString(),
-              url: selectionLink || marketLink || eventLink,
-              link_type: selectionLink ? 'selection' : marketLink ? 'market' : eventLink ? 'event' : null
-            });
-          }
+    return await r.json();
+  } finally {clearTimeout(timeout);}
+}
+module.exports=async function handler(req,res){
+  if(req.method!=='GET')return respond(res,405,{status:'method_not_allowed'});
+  const key=process.env.ODDSLINK_API_KEY;
+  if(!key)return respond(res,200,{status:'not_configured',comparisons:[]});
+  const id=String(req.query.game||'');
+  if(!/^\d{7,15}$/.test(id))return respond(res,400,{status:'invalid_game',comparisons:[]});
+  let feed;
+  try{feed=require('../data/game-picks.json');}
+  catch{return respond(res,200,{status:'no_picks',comparisons:[]});}
+  const game=(feed.games||[]).find(g=>String(g.id)===id);
+  if(!game||Date.parse(game.kickoff)<=Date.now())
+    return respond(res,200,{status:'not_upcoming',comparisons:[]});
+  const selections=(game.suggestions||[]).filter(s=>MARKET[s.market]&&Number.isInteger(Number(s.line))).slice(0,8);
+  if(!selections.length)return respond(res,200,{status:'no_selections',comparisons:[]});
+  const markets=[...new Set(selections.map(s=>MARKET[s.market]))];
+  const q=new URLSearchParams({markets:markets.join(','),oddsFormat:'decimal'});
+  try{
+    // One paid request for all upcoming NFL fixtures, filtered to our current matchup.
+    const data=await getJson('https://oddslink.app/v1/sports/nfl/props?'+q.toString(),key);
+    const event=(Array.isArray(data)?data:[]).find(e=>
+      normalise(e.home_team)===normalise(game.home) &&
+      normalise(e.away_team)===normalise(game.away) &&
+      Math.abs(Date.parse(e.commence_time)-Date.parse(game.kickoff))<7200000);
+    if(!event)return respond(res,200,{status:'no_event_coverage',comparisons:[]});
+    const now=Date.now();
+    const comparisons=selections.map(s=>{
+      const quotes=[];
+      for(const prop of event.props||[]){
+        if(!prop || prop.period || prop.stat!==MARKET[s.market] ||
+          normalise(prop.player)!==normalise(s.player) ||
+          Math.abs(Number(prop.point)-(Number(s.line)-0.5))>0.001)continue;
+        const book=prop.bookmaker||{};
+        if(!isUK(book))continue;
+        const checked=Date.parse(book.last_update||'');
+        if(!Number.isFinite(checked)||checked>now+120000||now-checked>1800000)continue;
+        for(const outcome of prop.outcomes||[]){
+          if(outcome.name!=='Over'||!Number.isFinite(Number(outcome.price))||Number(outcome.price)<=1)continue;
+          const url=validLink(book.link);
+          quotes.push({bookmaker:String(book.title||book.key||''),
+            odds:Number(outcome.price),checked_at:new Date(checked).toISOString(),
+            url,link_type:url?'event':null});
         }
       }
-      matches.sort((a,b) => b.odds - a.odds);
-      return {player:s.player, market:s.market, line:s.line, label:s.label, quotes:matches.slice(0,8)};
+      quotes.sort((a,b)=>b.odds-a.odds);
+      return {player:s.player,market:s.market,line:s.line,label:s.label,quotes:quotes.slice(0,8)};
     });
-    const anyQuotes = comparisons.some(item => item.quotes.length > 0);
-    return respond(res, 200, {status:anyQuotes?'ok':'no_exact_lines', provider:'The Odds API', event:game.away+' at '+game.home,
-      retrieved_at:new Date(now).toISOString(), comparisons});
-  } catch (err) {
-    // Do not leak the private key, request URL or internal provider response to visitors.
-    return respond(res, 200, {status:'provider_unavailable',
-      message:'Bookmaker prices are temporarily unavailable. Please check the bookmaker before betting.',comparisons:[]});
+    const any=comparisons.some(s=>s.quotes.length);
+    return respond(res,200,{
+      status:any?'ok':'no_exact_lines',provider:'OddsLink',
+      event:game.away+' at '+game.home,retrieved_at:new Date().toISOString(),comparisons
+    });
+  }catch(err){
+    if(err.code==='PLAN_REQUIRED'||err.status===403)
+      return respond(res,200,{status:'plan_required',message:'OddsLink player props require the Growth plan or higher.',comparisons:[]});
+    if(err.code==='INVALID_MARKET')
+      return respond(res,200,{status:'market_not_supported',message:'OddsLink did not accept a requested player-prop market.',comparisons:[]});
+    if(err.status===401)
+      return respond(res,200,{status:'key_invalid',comparisons:[]});
+    return respond(res,200,{status:'provider_unavailable',comparisons:[]});
   }
 };
