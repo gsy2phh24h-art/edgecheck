@@ -163,3 +163,10 @@ body[data-page="home"] .nav-dropdown-items [data-nav="home"],body[data-page="res
 .fixture-day-grid .match-context{margin:14px 0}
 @media(max-width:760px){.fixture-day-grid{grid-template-columns:1fr}.fixture-day-grid .match-head{min-height:100px;padding:15px 16px}.fixture-day-grid .match-head h3{font-size:15px}.fixture-day-grid .match-accordion-body{padding:8px 14px 16px}}
 @media(max-width:480px){.gamepicks .risk-picker{display:flex;width:100%}.gamepicks .risk-picker button{flex:1}.gamepicks-toolbar{align-items:flex-start}.picks-controls{gap:10px;margin-bottom:18px}.fixture-day-title h3{font-size:14px}}
+
+
+/* Game selector for decimal-target bet builders */
+.builder-game-filter{max-width:680px;margin:20px 0 10px}
+.builder-game-filter select{display:block;width:100%;min-height:49px;margin-top:9px;padding:12px 42px 12px 15px;background:#102a34;border:1px solid #416070;border-radius:11px;color:#eaf9f5;font-weight:650;cursor:pointer}
+.builder-game-filter select:focus{outline:2px solid #6cffa9;outline-offset:2px}
+.builder-filter-hint{margin:8px 0 0;color:#9eb6be;font-size:12px;line-height:1.5}
