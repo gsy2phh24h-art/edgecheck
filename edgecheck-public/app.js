@@ -29,12 +29,12 @@ boot();
 function prettyKickoff(iso){const dt=new Date(iso);return Number.isNaN(+dt)?'Time unknown':dt.toLocaleString('en-GB',{timeZone:'Europe/London',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' UK';}
 async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
  try{const resp=await fetch('/data/game-picks.json?b='+Math.floor(Date.now()/300000),{cache:'no-store'});if(!resp.ok)throw Error('Picks not imported');const data=await resp.json();
-  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/London'});
-  if(data.date_uk!==today)throw Error('Daily picks have not refreshed for today');
-  $('picks-date').textContent='Games for '+new Date(today+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/London'});
+  const ageHours=(Date.now()-Date.parse(data.updated_at))/3600000;
+  if(!Number.isFinite(ageHours)||ageHours>48||ageHours< -1)throw Error('Picks feed is out of date');
+  $('picks-date').textContent='Upcoming NFL games · next 7 days';
   $('picks-updated').textContent='Updated '+prettyKickoff(data.updated_at);
-  const games=Array.isArray(data.games)?data.games:[];
-  if(!games.length){out.innerHTML='<div class="value-empty"><strong>No NFL games scheduled today.</strong><p>Check back on the next game day.</p></div>';return;}
+  const games=(Array.isArray(data.games)?data.games:[]).filter(g=>Number.isFinite(Date.parse(g.kickoff))&&Date.parse(g.kickoff)>Date.now()).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
+  if(!games.length){out.innerHTML='<div class="value-empty"><strong>No upcoming fixtures in the latest update.</strong><p>The next fixture refresh will check the NFL schedule again.</p></div>';return;}
   out.innerHTML=games.map(g=>{const before=Date.parse(g.kickoff)>Date.now();const picks=before&&Array.isArray(g.suggestions)?g.suggestions:[];
     return `<article class="match-card"><div class="match-head"><div><span class="overline">NFL MATCHUP</span><h3>${escapeHtml(g.away)} <span class="muted">at</span> ${escapeHtml(g.home)}</h3><small>${escapeHtml(prettyKickoff(g.kickoff))}</small></div><span class="tag">${before?'UPCOMING':'STARTED / FINISHED'}</span></div>
     ${picks.length?`<div class="match-picks">${picks.map(p=>`<div class="match-pick"><div><strong>${escapeHtml(p.player)}</strong><small>${escapeHtml(p.team)} · ${escapeHtml(p.label)}</small><small>Against ${escapeHtml(p.opponent||'opponent')} · roster checked</small></div><div class="pick-rate">${p.hits}/${p.sample}<small>Last 5 hit</small></div></div>`).join('')}</div>`:'<p class="no-picks">'+(before?'No roster-verified suggestions available for this matchup.':'Pregame suggestions are hidden once kickoff has passed.')+'</p>'}
