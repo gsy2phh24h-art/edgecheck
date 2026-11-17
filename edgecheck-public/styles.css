@@ -202,3 +202,20 @@ body[data-page="nba"] .site-nav [data-nav="nba"],body[data-page="football"] .sit
 .sport-match-at{color:#819ba6;font-size:11px}
 .sport-match small{margin-top:7px;color:#a5b9c0;font-size:11px}
 @media(max-width:780px){.sport-hub-grid{grid-template-columns:1fr}.sport-hub-card{min-height:160px}.sport-match-grid{grid-template-columns:1fr}}
+
+
+/* NBA and football sourced prop research and same-game builder workspace */
+.sports-odds{margin:22px 0 36px}
+.sport-odds-filters{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:13px;margin:18px 0}
+.sport-odds-filters label{display:block;margin-bottom:8px}
+.sport-odds-filters select{display:block;width:100%;background:#102934;color:#ecf8f6;border:1px solid #3e5963;border-radius:10px;min-height:46px;padding:10px 12px;font-size:12px}
+.sport-odds-filters select:focus-visible{outline:2px solid #6cffa9;outline-offset:2px}
+.sport-props-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(240px,.9fr);gap:18px;margin:22px 0 29px;align-items:start}
+.sport-props-grid>div>h3,.sports-combos>h3{font-size:17px;margin:0 0 14px}
+.sport-props-grid .builder-panel{position:sticky;top:16px}
+.sport-props-grid .builder-panel button{width:100%;margin:7px 0}
+.sports-combos{margin-top:26px;padding-top:23px;border-top:1px solid #34505c}
+.sports-combos .odds-tier-tabs{margin:15px 0}
+.sports-combos .combo-card{margin:11px 0}
+@media(max-width:850px){.sport-odds-filters{grid-template-columns:1fr 1fr}.sport-props-grid{grid-template-columns:1fr}.sport-props-grid .builder-panel{position:static}}
+@media(max-width:540px){.sport-odds-filters{grid-template-columns:1fr}}
