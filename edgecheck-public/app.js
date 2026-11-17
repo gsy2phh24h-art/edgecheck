@@ -35,6 +35,7 @@ async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
   $('picks-updated').textContent='Updated '+prettyKickoff(data.updated_at);
   const games=(Array.isArray(data.games)?data.games:[]).filter(g=>Number.isFinite(Date.parse(g.kickoff))&&Date.parse(g.kickoff)>Date.now()).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
   currentUpcomingGames=games;
+  updateBuilderGameMenu();
   if(!games.length){out.innerHTML='<div class="value-empty"><strong>No upcoming fixtures in the latest update.</strong><p>The next fixture refresh will check the NFL schedule again.</p></div>';return;}
   $('fixture-count').textContent=games.length+' upcoming '+(games.length===1?'game':'games');
   const dateKey=iso=>new Date(iso).toLocaleDateString('en-CA',{timeZone:'Europe/London'});
@@ -58,6 +59,21 @@ if(['picks','builders','props'].includes(document.body.dataset.page))loadGamePic
 
 // Real decimal-odds board. Individual verified quotes only; never invent acca prices.
 let activeOddsTier=2;
+let selectedBuilderGame='';
+function updateBuilderGameMenu(){
+ const select=$('builder-game-select');
+ if(!select)return;
+ const previous=select.value||selectedBuilderGame;
+ const choices=currentUpcomingGames.filter(g=>Date.parse(g.kickoff)>Date.now());
+ select.innerHTML='<option value="">All upcoming games</option>'+choices.map(g=>
+  '<option value="'+escapeHtml(String(g.id))+'">'+escapeHtml(g.away+' at '+g.home+' · '+prettyKickoff(g.kickoff))+'</option>').join('');
+ selectedBuilderGame=choices.some(g=>String(g.id)===previous)?previous:'';
+ select.value=selectedBuilderGame;
+}
+$('builder-game-select')?.addEventListener('change',e=>{
+ selectedBuilderGame=e.target.value;
+ renderOddsBoard();
+});
 const oddsIntervals={2:[1.8,2.25],3:[2.7,3.35],4:[3.6,4.45],6:[5.4,6.65]};
 let currentUpcomingGames=[];
 let livePriceOffers=[];
@@ -191,7 +207,10 @@ function renderOddsBoard(){
   const active=Number(b.dataset.oddsTier)===activeOddsTier;
   b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
  });
- suggestedBuilders=makeSuggestedBuilders(livePriceOffers,activeOddsTier);
+ suggestedBuilders=makeSuggestedBuilders(
+  selectedBuilderGame?livePriceOffers.filter(o=>String(o.game_id)===selectedBuilderGame):livePriceOffers,
+  activeOddsTier
+ );
  $('odds-board-date').textContent=livePriceChecked?
    'Source prices checked '+new Date(livePriceChecked).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'})+' UK':
    'Waiting for bookmaker market prices';
@@ -199,7 +218,9 @@ function renderOddsBoard(){
  if(!suggestedBuilders.length){
   el.innerHTML='<div class="value-empty"><strong>No qualifying same-game builders around '+
    activeOddsTier.toFixed(2)+'</strong><p>'+
-   escapeHtml(livePriceError||'No matching combination of 2–4 independently priced selections from one game and one bookmaker is currently available. This may be a free-feed coverage limitation.')+
+   escapeHtml(livePriceError||(selectedBuilderGame?
+    'No matching 2–4-leg combination around this decimal target was found for the selected NFL game. Try another target or fixture.':
+    'No matching combination of 2–4 independently priced selections from one game and one bookmaker is currently available. This may be a free-feed coverage limitation.'))+
    '</p><button class="compare-btn" id="refresh-odds" type="button">Check prices again</button></div>';
   return;
  }
