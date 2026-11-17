@@ -215,6 +215,31 @@ function openBet365ForSelections(text,legs){
   navigator.clipboard.writeText(text).then(()=>{},()=>{window.prompt('Copy your selections:',text);});
  }else window.prompt('Copy your selections:',text);
 }
+function shareableBuilderUrl(gameId,legs){
+ if(!/^\d{7,15}$/.test(String(gameId)))return null;
+ if(!Array.isArray(legs)||!legs.length||legs.length>8)return null;
+ const clean=legs.map(l=>({
+  player:String(l.player||'').slice(0,90),
+  market:String(l.market||'').slice(0,45),
+  market_label:String(l.market_label||l.market||'').slice(0,65),
+  side:l.side==='Under'?'Under':'Over',
+  line:Number(l.line)
+ }));
+ if(clean.some(l=>!l.player||!l.market||!Number.isFinite(l.line)))return null;
+ const data={v:1,game_id:String(gameId),legs:clean};
+ const url=new URL('/props.html',window.location.origin);
+ url.searchParams.set('builder',JSON.stringify(data));
+ return url.href;
+}
+async function copyEdgeCheckShareLink(gameId,legs,button){
+ const url=shareableBuilderUrl(gameId,legs);
+ if(!url)return;
+ try{
+  await navigator.clipboard.writeText(url);
+  if(button)button.textContent='Share link copied ✓';
+  if($('share-feedback'))$('share-feedback').textContent='Anyone with this link can view your selections on EdgeCheck. They must enter them into their bookmaker manually.';
+ }catch{window.prompt('Copy this EdgeCheck builder link:',url);}
+}
 function suggestedBuilderText(b){
  return ['EdgeCheck suggested NFL bet builder',b.game,
   ...b.legs.map((l,i)=>(i+1)+'. '+l.player+' | '+l.side+' '+l.line+' '+(l.market_label||l.market)),
@@ -257,6 +282,7 @@ function renderOddsBoard(){
   '<p class="no-picks">The estimated total multiplies standalone prices. A real bet365 Bet Builder can offer different odds, restrict legs or reject the combination.</p>'+
   '<div class="combo-actions"><button type="button" class="compare-btn" data-copy-suggested="'+i+'">Copy builder</button>'+
   '<button type="button" class="compare-btn" data-load-suggested="'+i+'">Add to my builder</button>'+
+  '<button type="button" class="compare-btn" data-share-suggested="'+i+'">Share builder link</button>'+
   '<button type="button" class="compare-btn bet365-combo-launch" data-copy-open-suggested="'+i+'">Copy &amp; open bet365 ↗</button></div></article>'
  ).join('');
 }
@@ -264,10 +290,15 @@ document.addEventListener('click',async e=>{
  const copy=e.target.closest('[data-copy-suggested]');
  const load=e.target.closest('[data-load-suggested]');
  const launch=e.target.closest('[data-copy-open-suggested]');
- if(!copy&&!load&&!launch)return;
- const click=copy||load||launch;
- const index=Number(click.dataset[copy?'copySuggested':load?'loadSuggested':'copyOpenSuggested']);
+ const share=e.target.closest('[data-share-suggested]');
+ if(!copy&&!load&&!launch&&!share)return;
+ const click=copy||load||launch||share;
+ const index=Number(click.dataset[copy?'copySuggested':load?'loadSuggested':launch?'copyOpenSuggested':'shareSuggested']);
  const builder=suggestedBuilders[index];if(!builder)return;
+ if(share){
+  await copyEdgeCheckShareLink(builder.game_id,builder.legs,share);
+  return;
+ }
  if(launch){
   openBet365ForSelections(suggestedBuilderText(builder),builder.legs);
   launch.textContent='Opened bet365 · selections copied';
@@ -505,6 +536,7 @@ $('open-copied-builder')?.addEventListener('click',()=>{
  'Prices and combined odds must be verified in bet365.'].join('\\n');
  openBet365ForSelections(text,builderLegs);
 });
+$('share-builder')?.addEventListener('click',()=>copyEdgeCheckShareLink(builderFixture,builderLegs,$('share-builder')));
 $('copy-builder')?.addEventListener('click',async()=>{
  if(!builderLegs.length)return;
  const text=['EdgeCheck NFL Bet Builder selections','Game: '+builderFixtureName(builderFixture),
@@ -532,6 +564,21 @@ document.addEventListener('click',e=>{
 });
 if(document.body.dataset.page==='props'){
  try {
+  const shared=new URL(window.location.href).searchParams.get('builder');
+  if(shared && shared.length<4500){
+   const payload=JSON.parse(shared);
+   if(payload.v===1 && /^\d{7,15}$/.test(String(payload.game_id)) &&
+      Array.isArray(payload.legs) && payload.legs.length>0 && payload.legs.length<=8){
+    builderFixture=String(payload.game_id);
+    builderLegs=payload.legs.filter(l=>l&&typeof l.player==='string'&&l.player.length<=90&&
+      typeof l.market==='string'&&l.market.length<=45&&Number.isFinite(Number(l.line))&&
+      (l.side==='Over'||l.side==='Under')).map(l=>({
+        game_id:builderFixture,player:l.player,market:l.market,
+        market_label:String(l.market_label||l.market).slice(0,65),
+        side:l.side,line:Number(l.line),odds:null,bookmaker:''
+    })).slice(0,8);
+   }
+  }else{
   const saved=sessionStorage.getItem('edgecheck_pending_builder');
   if(saved){
     sessionStorage.removeItem('edgecheck_pending_builder');
@@ -540,6 +587,7 @@ if(document.body.dataset.page==='props'){
       builderFixture=String(parsed.game_id);
       builderLegs=parsed.legs.filter(l=>l&&String(l.game_id)===builderFixture&&l.player&&l.market&&Number.isFinite(Number(l.line))).slice(0,8);
     }
+  }
   }
  }catch{}
  renderBuilder();
