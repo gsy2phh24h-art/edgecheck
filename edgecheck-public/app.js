@@ -97,7 +97,9 @@ document.addEventListener('click', async event => {
     if (data.status !== 'ok') {
       const messages = {
         not_configured: 'Live odds are not connected yet. An authorised odds API subscription is required.',
-        no_event_coverage: 'No UK bookmaker player-prop prices were returned for this matchup.',
+        no_event_coverage: 'This NFL game is not currently covered by the selected odds provider.',
+        no_uk_prop_coverage: 'The odds feed returned no UK bookmaker NFL player-prop markets for this game. This provider currently mainly covers US and Australian player props.',
+        no_exact_lines: 'UK player-prop markets were found, but none matched the exact player and threshold. Check the bookmaker for other lines.',
         not_upcoming: 'Pre-match prices are no longer available for this fixture.',
         provider_unavailable: 'Price provider temporarily unavailable. Check prices directly with bookmakers.',
         no_selections: 'No suitable player selections available for comparison.'
