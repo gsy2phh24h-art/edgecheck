@@ -96,15 +96,16 @@ document.addEventListener('click', async event => {
     const data = await response.json();
     if (data.status !== 'ok') {
       const messages = {
-        not_configured: 'OddsLink has not yet been configured for this website.',
-        plan_required: 'OddsLink requires the Growth plan or higher for NFL player props. Your key is connected but this market is not enabled on its plan.',
-        key_invalid: 'The OddsLink API key was rejected. Check your OddsLink account.',
-        market_not_supported: 'One requested NFL player-prop market is not supported by OddsLink.',
+        not_configured: 'ParlayAPI has not been configured for this website.',
+        plan_required: 'The ParlayAPI account does not currently permit this player-prop request.',
+        key_invalid: 'ParlayAPI rejected the API key. Check your ParlayAPI account.',
+        market_not_supported: 'The requested player-prop market is not supported.',
         no_event_coverage: 'This NFL game is not currently covered by the selected odds provider.',
         no_uk_prop_coverage: 'No verified UK bookmaker player-prop prices are available for this fixture.',
-        no_exact_lines: 'OddsLink returned no fresh matching UK-bookmaker price for these exact player targets. Other lines may be available.',
+        no_exact_lines: 'ParlayAPI returned no recent verified bet365 or Unibet quote for these exact player targets. Its coverage may mainly be outside the UK.',
         not_upcoming: 'Pre-match prices are no longer available for this fixture.',
         provider_unavailable: 'Price provider temporarily unavailable. Check prices directly with bookmakers.',
+        quota_exhausted: 'ParlayAPI has reached its current rate or credit limit. Try again after the allowance renews.',
         no_selections: 'No suitable player selections available for comparison.'
       };
       panel.textContent = messages[data.status] || 'No verified prices available right now.';
