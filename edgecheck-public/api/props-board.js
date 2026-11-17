@@ -80,14 +80,28 @@ module.exports=async function handler(req,res){
       });
     }
   }
-  // Prefer bet365, then most recently observed priced markets.
+  // Prefer bet365 within each game, but spread the response across fixtures
+  // so one busy game cannot crowd every other upcoming match off the page.
   offers.sort((a,b)=>(b.bookmaker_key==='bet365')-(a.bookmaker_key==='bet365')||
     Date.parse(b.checked_at)-Date.parse(a.checked_at));
+  const groups=new Map();
+  for(const o of offers){
+    if(!groups.has(o.game_id))groups.set(o.game_id,[]);
+    if(groups.get(o.game_id).length<90)groups.get(o.game_id).push(o);
+  }
+  const balanced=[];
+  let pending=true;
+  while(pending&&balanced.length<600){
+    pending=false;
+    for(const group of groups.values()){
+      if(group.length && balanced.length<600){balanced.push(group.shift());pending=true;}
+    }
+  }
   return send(res,{
-    status:offers.length?'ok':'no_coverage',source:'ParlayAPI',
+    status:balanced.length?'ok':'no_coverage',source:'ParlayAPI',
     retrieved_at:new Date(now).toISOString(),
-    message:offers.length?'Bookmaker quotes available; geographic eligibility and bet365 market availability require checking.':'No fresh, fixture-verified NFL prop quotes from sportsbooks were returned.',
-    offers:offers.slice(0,450)
+    message:balanced.length?'Bookmaker quotes available; geographic eligibility and bet365 market availability require checking.':'No fresh, fixture-verified NFL prop quotes from sportsbooks were returned.',
+    offers:balanced
   });
  }catch(e){return send(res,{status:'provider_unavailable',offers:[]});}
  finally{clearTimeout(timeout);}
