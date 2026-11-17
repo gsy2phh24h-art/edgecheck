@@ -32,3 +32,31 @@
 .risk-picker button.active{background:#1e4a38;border-color:#6cffa9;color:#a6ffd0}
 .risk-group[hidden],[hidden]{display:none!important}
 .odds-offer small{display:block;margin-top:6px;color:#aebfc6}
+
+
+/* Live props and copy-to-bet365 builder */
+.live-props-filters{margin:14px 0 12px}
+.live-props-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.live-props-actions .compare-btn{width:auto}
+#props-status{color:#a9bfc8;font-size:12px}
+.live-props-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(245px,320px);gap:18px;align-items:start}
+.prop-offer-list{max-height:590px;overflow:auto;display:flex;flex-direction:column;gap:7px}
+.prop-offer{display:flex;gap:10px;align-items:center;padding:12px;border:1px solid #304751;border-radius:10px;background:#102632}
+.prop-offer-info{flex:1;min-width:0}
+.prop-offer-info strong{display:block;color:#eef7f8;font-size:14px}
+.prop-offer-info small{display:block;color:#a7bac3;font-size:11px;margin-top:4px;line-height:1.35}
+.prop-offer b{color:#a6ffd0;font-size:15px}
+.prop-offer button,.pick-add{border:1px solid #65e5aa;border-radius:8px;color:#b7ffdf;background:#173b32;padding:8px 11px;font-weight:750;cursor:pointer}
+.pick-add{align-self:center;white-space:nowrap;margin-left:auto}
+.builder-panel{background:#0e2430;border:1px solid #385461;border-radius:12px;padding:16px;position:sticky;top:15px}
+.builder-panel h3{font-size:17px;margin:0 0 7px}
+.builder-panel .primary{display:block;width:100%;margin:16px 0 8px}
+.builder-panel .builder-open{display:block;text-align:center}
+.builder-panel #clear-builder{margin-top:12px}
+.builder-leg{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-top:1px solid #34515a;padding:10px 0}
+.builder-leg strong,.builder-leg small{display:block}
+.builder-leg strong{font-size:12px}
+.builder-leg small{font-size:11px;color:#a5bac2;margin-top:4px}
+.builder-leg button{border:0;background:none;color:#faadad;font-size:20px;cursor:pointer}
+@media(max-width:800px){.live-props-layout{grid-template-columns:minmax(0,1fr)}.builder-panel{position:static}.prop-offer-list{max-height:460px}}
+@media(max-width:480px){.prop-offer{gap:7px;padding:10px}.prop-offer-info small{font-size:10px}.prop-offer button{padding:7px 9px}.match-pick{flex-wrap:wrap}}
