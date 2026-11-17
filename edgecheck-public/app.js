@@ -57,53 +57,53 @@ let livePriceChecked=0;
 let livePriceError='';
 let livePriceLoading=false;
 
-async function loadLiveOddsBoard(){
+// Reuse one server-side, cached odds request for both the price board and builder.
+let propFeedCache=null;
+let propFeedPromise=null;
+let propFeedAt=0;
+async function getPropFeed(force=false){
+ if(!force&&propFeedCache&&Date.now()-propFeedAt<180000)return propFeedCache;
+ if(propFeedPromise)return propFeedPromise;
+ propFeedPromise=(async()=>{
+  const response=await fetch('/api/props-board?cb='+Math.floor(Date.now()/180000),{cache:'no-store'});
+  if(!response.ok)throw Error('Live player market service returned HTTP '+response.status);
+  const data=await response.json();
+  propFeedCache=data;propFeedAt=Date.now();
+  return data;
+ })();
+ try{return await propFeedPromise;}finally{propFeedPromise=null;}
+}
+function explainPropFeed(status){
+ return ({
+  not_configured:'A ParlayAPI key is required to display live props.',
+  key_invalid:'The saved ParlayAPI key has been rejected.',
+  plan_required:'The connected API plan cannot access these prop markets.',
+  quota_exhausted:'ParlayAPI has reached its credit or rate limit.',
+  no_upcoming_games:'No upcoming games are available in the latest fixture update.',
+  missing_fixtures:'The NFL fixtures have not loaded.',
+  no_coverage:'No recent, game-verified sportsbook player props are available from the feed.',
+  provider_unavailable:'The player-prop provider is temporarily unavailable.'
+ })[status]||'The provider has no verified player-prop prices for this selection.';
+}
+async function loadLiveOddsBoard(force=false){
  if(livePriceLoading)return;
- if(Date.now()-livePriceChecked<120000 && (livePriceOffers.length||livePriceError)){renderOddsBoard();return;}
  livePriceLoading=true;
  livePriceError='';
- $('odds-board-results').innerHTML='<div class="value-empty">Checking verified player-prop prices…</div>';
- try {
-   if(!currentUpcomingGames.length)throw Error('No upcoming NFL game data. Refresh fixtures before checking odds.');
-   const pool=currentUpcomingGames.slice(0,3);
-   const results=await Promise.all(pool.map(async g=>{
-     const r=await fetch('/api/compare-odds?game='+encodeURIComponent(g.id),{cache:'no-store'});
-     if(!r.ok)throw Error('Bookmaker feed returned '+r.status);
-     return {game:g,data:await r.json()};
-   }));
-   livePriceOffers=[];
-   const messages=[];
-   for(const item of results){
-     const result=item.data;
-     if(result.status!=='ok'){
-       messages.push(result.status);
-       continue;
-     }
-     for(const comp of result.comparisons||[]){
-       for(const q of comp.quotes||[]){
-         const checked=Date.parse(q.checked_at);
-         if(!Number.isFinite(checked)||Date.now()-checked>1800000)continue;
-         const price=Number(q.odds);
-         if(!Number.isFinite(price)||price<=1)continue;
-         let url=null;
-         try{if(q.url){const v=new URL(q.url);if(v.protocol==='https:')url=v.href;}}catch{}
-         livePriceOffers.push({
-           game:item.game.away+' at '+item.game.home,
-           player:comp.player,label:comp.label,bookmaker:q.bookmaker,
-           odds:price,url,checked_at:q.checked_at,
-           link_type:q.link_type||'event'
-         });
-       }
-     }
-   }
-   livePriceOffers.sort((x,y)=>y.odds-x.odds);
-   if(!livePriceOffers.length){
-     livePriceError=messages.includes('quota_exhausted')?'ParlayAPI credit limit reached. No quotes can be checked right now.':
-       messages.includes('key_invalid')?'ParlayAPI rejected the configured key.':
-       messages.includes('provider_unavailable')?'ParlayAPI could not return verified prices right now.':
-       'No verified UK-facing NFL player-prop prices for the exact suggested lines. The free feed may not cover these markets.';
-   }
- }catch(e){livePriceOffers=[];livePriceError=e.message||'Unable to check prices';}
+ $('odds-board-results').innerHTML='<div class="value-empty">Checking available sportsbook prices…</div>';
+ try{
+  const data=await getPropFeed(force);
+  const rows=Array.isArray(data.offers)?data.offers:[];
+  livePriceOffers=rows.filter(o=>o.side==='Over').map(o=>({
+   game:o.game,game_id:o.game_id,player:o.player,
+   label:o.side+' '+o.line+' '+o.market_label,
+   market:o.market,side:o.side,line:o.line,
+   bookmaker:o.bookmaker,bookmaker_key:o.bookmaker_key,
+   odds:Number(o.odds),url:o.url,checked_at:o.checked_at,
+   link_type:o.link_type||'event',id:o.id
+  }));
+  if(data.status!=='ok')livePriceError=explainPropFeed(data.status);
+  if(!livePriceOffers.length&&!livePriceError)livePriceError=explainPropFeed('no_coverage');
+ }catch(e){livePriceOffers=[];livePriceError=e.message||'Unable to retrieve player props.';}
  finally{livePriceChecked=Date.now();livePriceLoading=false;renderOddsBoard();}
 }
 function renderOddsBoard(){
