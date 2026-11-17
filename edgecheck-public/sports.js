@@ -97,6 +97,7 @@ let priceStatus='';
 let chosenGame='';
 let chosenMarket='';
 let chosenSort='high';
+let playerQuery='';
 let targetPrice=2;
 let selectedLegs=[];
 let combos=[];
@@ -158,7 +159,9 @@ function bestAvailableOffers(rows){
 function refreshOddsResults(){
  if(!board)return;
  renderPriceFilters();
- let rows=bestAvailableOffers(selectedFixture().filter(o=>!chosenMarket||o.market===chosenMarket));
+ let rows=bestAvailableOffers(selectedFixture().filter(o=>
+  (!chosenMarket||o.market===chosenMarket)&&
+  (!playerQuery||o.player.toLowerCase().includes(playerQuery))));
  rows.sort((a,b)=>chosenSort==='low'?a.odds-b.odds:chosenSort==='name'?
   a.player.localeCompare(b.player):b.odds-a.odds);
  rows=rows.slice(0,100);
@@ -262,6 +265,9 @@ if(board){
  gamePicker.addEventListener('change',e=>{chosenGame=e.target.value;chosenMarket='';refreshOddsResults();});
  marketPicker.addEventListener('change',e=>{chosenMarket=e.target.value;refreshOddsResults();});
  sortPicker.addEventListener('change',e=>{chosenSort=e.target.value;refreshOddsResults();});
+ document.getElementById('sports-player-search').addEventListener('input',e=>{
+  playerQuery=e.target.value.trim().toLowerCase();refreshOddsResults();
+ });
  document.getElementById('sports-reload').addEventListener('click',loadSportsPrices);
  document.querySelectorAll('[data-sports-target]').forEach(b=>b.addEventListener('click',()=>{targetPrice=Number(b.dataset.sportsTarget);renderCombos();}));
  board.addEventListener('click',e=>{
