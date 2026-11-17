@@ -1,6 +1,6 @@
 'use strict';
 // Live NFL prop offers. One server-side request for the current slate, cached
-// briefly to conserve the free ParlayAPI monthly credit allowance.
+// for 30 minutes at the CDN to conserve the free ParlayAPI monthly credit allowance.
 const MARKETS={
   player_pass_yds:'Passing yards',
   player_pass_completions:'Pass completions',
@@ -21,7 +21,7 @@ const EXCLUDED=new Set(['prizepicks','underdog','betr','sleeper','pick6','kalshi
 const normal=s=>String(s||'').normalize('NFKD').toLowerCase().replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
 const dec=(n)=>{n=Number(n);if(!Number.isFinite(n)||!n)return null;return +(n>0?1+n/100:1+100/Math.abs(n)).toFixed(2);};
 function send(res,obj,status=200){
- res.setHeader('Cache-Control','public, s-maxage=240, stale-while-revalidate=120');
+ res.setHeader('Cache-Control','public, s-maxage=1800, stale-while-revalidate=300');
  return res.status(status).json(obj);
 }
 const safeLink=value=>{try{const u=new URL(value);return u.protocol==='https:'?u.href:null;}catch{return null;}};
