@@ -1,0 +1,60 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08131b"><meta name="description" content="EdgeCheck NFL player prop research: recent game logs, hit rates and bet slip analysis."><title>Same-game bet builder ideas | EdgeCheck</title><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/styles.css"></head><body data-page="builders">
+<header class="top"><div class="brand"><span class="logo">E<span>↗</span></span><div><strong>EDGE<span class="accent">CHECK</span></strong><small>NFL PROP INTELLIGENCE</small></div></div><div class="topright"><span class="livepoint"></span><span id="data-status">Checking data…</span></div></header>
+<nav class="site-nav" aria-label="Main navigation"><div class="site-nav-inner">
+<a data-nav="home" href="/">Home</a><a data-nav="research" href="/research.html">Player research</a><a data-nav="picks" href="/picks.html">Game picks</a><a data-nav="builders" href="/builders.html">Bet builders</a><a data-nav="props" href="/props.html">Live props</a>
+</div></nav>
+<main class="shell"><section class="page-intro"><span class="overline">EDGE<span class="accent">CHECK</span> / NFL</span><h1>Same-game bet builder ideas</h1><p>Choose a target decimal price and copy a multi-leg builder idea. These are illustrative totals, not combined bet365 quotes.</p></section><section class="hero"><div class="eyebrow">THE RESEARCH DESK <span>•</span> NFL</div><h1>Know the numbers.<br><span>Build a smarter slip.</span></h1><p>Search NFL players, examine their recent performances, and identify the legs with the weakest historical hit rates.</p><div class="hero-stats"><div><b id="player-count">—</b><span>Players available</span></div><div><b id="game-count">—</b><span>Game logs</span></div><div><b id="update-date">—</b><span>Latest update (UTC)</span></div></div></section>
+<div id="alert" class="notice" hidden></div>
+<div class="columns"><section class="panel analyser"><div class="sectionhead"><div><span class="overline">01 / RESEARCH</span><h2>Player prop analyser</h2></div><span class="tag">NFL</span></div>
+<label class="fieldlabel" for="player-search">FIND A PLAYER</label><div class="searchwrap"><span class="searchicon">⌕</span><input id="player-search" type="search" autocomplete="off" placeholder="Search e.g. Justin Herbert" disabled><div id="suggestions" class="suggestions" hidden></div></div>
+<div class="two"><div><label class="fieldlabel" for="market">STAT MARKET</label><select id="market"><option value="passing_yards">Passing yards</option><option value="receiving_yards">Receiving yards</option><option value="rushing_yards">Rushing yards</option><option value="passing_tds">Passing touchdowns</option><option value="receiving_tds">Receiving touchdowns</option><option value="rushing_tds">Rushing touchdowns</option><option value="receptions">Receptions</option><option value="completions">Passing completions</option><option value="attempts">Pass attempts</option><option value="carries">Rushing attempts</option></select></div><div><label class="fieldlabel" for="line">TARGET: AT LEAST</label><input id="line" type="number" min="0" step="1" value="50"></div></div>
+<div class="selected" id="selected"><div class="avatar">?</div><div><strong>No player selected</strong><small>Choose a player to view their game logs</small></div></div>
+<div class="windowrow"><span>RECENT GAME WINDOW</span><div class="segment" role="group" aria-label="Game window"><button class="on" data-window="5">L5</button><button data-window="10">L10</button><button data-window="20">L20</button></div></div>
+<div class="result" id="result"><div class="empty">Select a player to analyse a prop.</div></div><button id="add-leg" class="primary" disabled>+ Add to my bet slip</button><div class="footnote">A game counts as a hit when the recorded stat meets or exceeds the target. Only games with a published player stat line are counted. Past results do not predict future results.</div>
+</section><aside class="panel slip"><div class="sectionhead"><div><span class="overline">02 / YOUR PICKS</span><h2>Bet slip <span id="slip-count" class="count">0</span></h2></div><button class="textbtn" id="clear-slip">Clear all</button></div><div id="legs"><div class="slip-empty"><span>▤</span><strong>Your slip is empty</strong><p>Research a player, then add a selection to start comparing legs.</p></div></div><div class="slip-footer"><div class="two"><div><label class="fieldlabel" for="stake">STAKE (£)</label><input id="stake" type="number" min="0" step="0.01" value="10"></div><div><label class="fieldlabel" for="decimal-odds">TOTAL DECIMAL ODDS</label><input id="decimal-odds" type="number" min="1.01" step="0.01" placeholder="e.g. 7.25"></div></div><div class="rowitem"><span>Potential total return</span><strong id="returns">—</strong></div><div class="rowitem"><span>Bookmaker implied probability</span><strong id="implied">—</strong></div><div class="rowitem"><span>Weakest recent leg</span><strong id="weakest">—</strong></div><button class="outline" id="copy-slip">Copy slip summary</button><p class="footnote">Historical hit rates are displayed per leg. Legs are correlated and cannot safely be multiplied to estimate accumulator success. Odds are entered manually and are not live bookmaker quotes.</p></div></aside></div>
+
+<section class="panel gamepicks" id="game-picks" aria-labelledby="game-picks-title">
+  <div class="sectionhead"><div><span class="overline">03 / GAME PICKS</span><h2 id="game-picks-title">NFL player props by matchup</h2></div><span class="tag">UPCOMING</span></div>
+  <p class="value-intro">Switch between balanced and higher-risk player targets, based on the last five and ten games. Higher-risk picks use harder statistical thresholds, not proven value or guaranteed returns.</p>
+  <div class="gamepicks-toolbar"><span id="picks-date">Checking today's schedule…</span><span id="picks-updated"></span></div>
+  <div id="game-picks-list" class="game-picks-list" aria-live="polite"><div class="value-empty">Loading today's NFL matchups…</div></div>
+  <p class="footnote">Suggestions are automatically generated from recent game logs when the daily updater runs. Only exact bookmaker quotes are shown in the live markets section; any statistical suggestions without a quote remain unpriced. Check injuries, line-ups and bookmaker markets before acting. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
+</section>
+
+
+<section class="panel tier-board" id="odds-picks" aria-labelledby="odds-picks-title">
+  <div class="sectionhead"><div><span class="overline">04 / ODDS PICKS</span><h2 id="odds-picks-title">Same-game bet builders by decimal odds</h2></div><span class="tag">INDICATIVE BUILDERS</span></div>
+  <p class="value-intro">Choose a target decimal price to see 2–4-leg bet builder ideas for the same NFL match. The indicative totals are calculated from separately quoted player markets, not from a bet365 Bet Builder quote.</p>
+  <div class="odds-tier-tabs" role="group" aria-label="Choose decimal odds range">
+    <button class="odds-tier active" data-odds-tier="2" aria-pressed="true">2.00 <small>around evens</small></button>
+    <button class="odds-tier" data-odds-tier="3" aria-pressed="false">3.00 <small>around 2/1</small></button>
+    <button class="odds-tier" data-odds-tier="4" aria-pressed="false">4.00 <small>around 3/1</small></button>
+    <button class="odds-tier" data-odds-tier="6" aria-pressed="false">6.00 <small>around 5/1</small></button>
+  </div>
+  <div class="odds-board-meta"><span id="odds-board-date">Finding same-game combinations…</span><span id="odds-board-count">0 available</span></div>
+  <div id="odds-board-results" class="odds-board-results" aria-live="polite"><div class="value-empty">Checking sourced offers…</div></div>
+  <p class="footnote">All approximate totals are illustrative products of individual bookmaker prices. Same-game markets can be correlated, so bet365 may quote a different combined price or reject a combination. Copy the selections and confirm everything at bet365 before betting. 18+ · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a>.</p>
+</section>
+
+<section class="panel liveprops" id="live-props" aria-labelledby="live-props-title">
+ <div class="sectionhead"><div><span class="overline">05 / LIVE PLAYER MARKETS</span><h2 id="live-props-title">Build your bet365 player-prop list</h2></div><span class="tag">ACTUAL FEED</span></div>
+ <p class="value-intro">Browse priced NFL player props returned by ParlayAPI. Choose a single fixture and add as many available player lines as you like. Copy the selection list and open bet365 to build it yourself. Odds shown are individual source quotes, not a priced bet365 Bet Builder.</p>
+ <div class="two live-props-filters">
+  <div><label class="fieldlabel" for="prop-game">MATCHUP</label><select id="prop-game"><option value="">Loading upcoming matchups…</option></select></div>
+  <div><label class="fieldlabel" for="prop-market">PLAYER MARKET</label><select id="prop-market"><option value="">All player markets</option><option value="player_pass_yds">Passing yards</option><option value="player_rush_yds">Rushing yards</option><option value="player_rec_yds">Receiving yards</option><option value="player_receptions">Receptions</option><option value="player_pass_completions">Completions</option><option value="player_anytime_td">Touchdowns</option></select></div>
+ </div>
+ <div class="live-props-actions"><button type="button" class="compare-btn" id="load-props">Refresh available props</button><span id="props-status" role="status">Checking available sportsbook quotes…</span></div>
+ <div class="live-props-layout">
+  <div><div id="live-props-results" aria-live="polite"><div class="value-empty">Loading real player markets…</div></div></div>
+  <aside class="builder-panel" aria-labelledby="builder-title"><h3 id="builder-title">Your bet365 builder list <span id="builder-count">0</span></h3><p class="no-picks" id="builder-game">Select an NFL fixture and add player props.</p>
+   <div id="builder-legs"><p class="no-picks">No selections added yet.</p></div>
+   <button type="button" class="primary" id="copy-builder">Copy bet builder selections</button>
+   <a class="check-bookmaker builder-open" href="https://www.bet365.com/" rel="noopener noreferrer" target="_blank">Open bet365 ↗</a>
+   <button type="button" class="textbtn" id="clear-builder">Clear selections</button>
+   <p class="footnote" id="builder-note">Copying does not add bets to bet365 automatically. Same-match selections may be restricted or unavailable. Check player eligibility, available lines and the final combined price at bet365 before placing any bet.</p>
+  </aside>
+ </div>
+</section>
+
+<section class="about"><div class="overline">BUILT FOR BETTER RESEARCH</div><h2>Every leg. Actual game logs.</h2><div class="features"><div><span>◫</span><strong>Recent form</strong><p>Review each player's last 5, 10 or 20 recorded games.</p></div><div><span>◉</span><strong>Target hit rates</strong><p>See how often a player reaches your specific line, not a generic average.</p></div><div><span>▤</span><strong>Compare selections</strong><p>Build a multi-leg slip and spot the weakest recent performers.</p></div></div></section>
+<footer><strong>EDGE<span class="accent">CHECK</span></strong><span>Independent NFL research tool. Not affiliated with the NFL or any bookmaker. 18+ · Gamble responsibly · <a href="https://www.gambleaware.org/" target="_blank" rel="noopener">GambleAware</a></span><span>Data: <a href="https://github.com/nflverse/nflverse-data" target="_blank" rel="noopener">nflverse</a></span></footer></main><script src="/app.js" defer></script></body></html>
