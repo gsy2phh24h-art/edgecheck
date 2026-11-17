@@ -34,6 +34,7 @@ async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
   $('picks-date').textContent='Upcoming NFL games · next 7 days';
   $('picks-updated').textContent='Updated '+prettyKickoff(data.updated_at);
   const games=(Array.isArray(data.games)?data.games:[]).filter(g=>Number.isFinite(Date.parse(g.kickoff))&&Date.parse(g.kickoff)>Date.now()).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
+  currentUpcomingGames=games;
   if(!games.length){out.innerHTML='<div class="value-empty"><strong>No upcoming fixtures in the latest update.</strong><p>The next fixture refresh will check the NFL schedule again.</p></div>';return;}
   out.innerHTML='<div class="risk-picker" role="group" aria-label="Pick difficulty"><button type="button" class="active" data-risk-choice="balanced">Balanced targets</button><button type="button" data-risk-choice="higher">Higher-risk targets</button></div>'+games.map(g=>{const before=Date.parse(g.kickoff)>Date.now();const picks=before&&Array.isArray(g.suggestions)?g.suggestions:[];const boldPicks=before&&Array.isArray(g.higher_risk_suggestions)?g.higher_risk_suggestions:[];
     return `<article class="match-card"><div class="match-head"><div><span class="overline">NFL MATCHUP</span><h3>${escapeHtml(g.away)} <span class="muted">at</span> ${escapeHtml(g.home)}</h3><small>${escapeHtml(prettyKickoff(g.kickoff))}</small></div><span class="tag">${before?'UPCOMING':'STARTED / FINISHED'}</span></div>
@@ -47,37 +48,89 @@ async function loadGamePicks(){const out=$('game-picks-list');if(!out)return;
 loadGamePicks();
 
 
-// Decimal odds suggestions: fail closed unless prices have a recent trusted source.
+// Real decimal-odds board. Individual verified quotes only; never invent acca prices.
 let activeOddsTier=2;
 const oddsIntervals={2:[1.8,2.25],3:[2.7,3.35],4:[3.6,4.45],6:[5.4,6.65]};
-const permittedSourceHosts=['bet365.com','www.bet365.com'];
-const validISO=s=>typeof s==='string'&&Number.isFinite(Date.parse(s));
-function todayUK(){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const v=k=>parts.find(x=>x.type===k)?.value||'';return `${v('year')}-${v('month')}-${v('day')}`;}
-function safeBookmakerUrl(url){try{const u=new URL(url);return u.protocol==='https:'&&permittedSourceHosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h))?u.href:'https://www.bet365.com/';}catch{return 'https://www.bet365.com/';}}
-function validOffer(o,feed){
- if(!o||o.bookmaker!=='bet365'||o.status!=='verified'||!Array.isArray(o.legs)||!o.legs.length||o.legs.length>8)return false;
- if(!Number.isFinite(o.decimal_odds)||o.decimal_odds<=1||!validISO(o.checked_at)||!validISO(o.kickoff))return false;
- if(!o.source_name||!o.source_reference||!validISO(feed.updated_at)||feed.date_uk!==todayUK())return false;
- // A quoted price must be recent, pre-kickoff, and pre-expiry. No fake 'live' labels.
- const now=Date.now(), checked=Date.parse(o.checked_at),kickoff=Date.parse(o.kickoff);
- if(checked>now+120000||now-checked>10*60*1000||now>=kickoff)return false;
- if(o.expires_at&&(!validISO(o.expires_at)||now>=Date.parse(o.expires_at)))return false;
- if(!o.game||!o.legs.every(l=>typeof l==='string'&&l.trim().length>0))return false;
- return true;
+let currentUpcomingGames=[];
+let livePriceOffers=[];
+let livePriceChecked=0;
+let livePriceError='';
+let livePriceLoading=false;
+
+async function loadLiveOddsBoard(){
+ if(livePriceLoading)return;
+ if(Date.now()-livePriceChecked<120000 && (livePriceOffers.length||livePriceError)){renderOddsBoard();return;}
+ livePriceLoading=true;
+ livePriceError='';
+ $('odds-board-results').innerHTML='<div class="value-empty">Checking verified player-prop prices…</div>';
+ try {
+   if(!currentUpcomingGames.length)throw Error('No upcoming NFL game data. Refresh fixtures before checking odds.');
+   const pool=currentUpcomingGames.slice(0,3);
+   const results=await Promise.all(pool.map(async g=>{
+     const r=await fetch('/api/compare-odds?game='+encodeURIComponent(g.id),{cache:'no-store'});
+     if(!r.ok)throw Error('Bookmaker feed returned '+r.status);
+     return {game:g,data:await r.json()};
+   }));
+   livePriceOffers=[];
+   const messages=[];
+   for(const item of results){
+     const result=item.data;
+     if(result.status!=='ok'){
+       messages.push(result.status);
+       continue;
+     }
+     for(const comp of result.comparisons||[]){
+       for(const q of comp.quotes||[]){
+         const checked=Date.parse(q.checked_at);
+         if(!Number.isFinite(checked)||Date.now()-checked>1800000)continue;
+         const price=Number(q.odds);
+         if(!Number.isFinite(price)||price<=1)continue;
+         let url=null;
+         try{if(q.url){const v=new URL(q.url);if(v.protocol==='https:')url=v.href;}}catch{}
+         livePriceOffers.push({
+           game:item.game.away+' at '+item.game.home,
+           player:comp.player,label:comp.label,bookmaker:q.bookmaker,
+           odds:price,url,checked_at:q.checked_at,
+           link_type:q.link_type||'event'
+         });
+       }
+     }
+   }
+   livePriceOffers.sort((x,y)=>y.odds-x.odds);
+   if(!livePriceOffers.length){
+     livePriceError=messages.includes('quota_exhausted')?'ParlayAPI credit limit reached. No quotes can be checked right now.':
+       messages.includes('key_invalid')?'ParlayAPI rejected the configured key.':
+       messages.includes('provider_unavailable')?'ParlayAPI could not return verified prices right now.':
+       'No verified UK-facing NFL player-prop prices for the exact suggested lines. The free feed may not cover these markets.';
+   }
+ }catch(e){livePriceOffers=[];livePriceError=e.message||'Unable to check prices';}
+ finally{livePriceChecked=Date.now();livePriceLoading=false;renderOddsBoard();}
 }
-let oddsFeed=null;
 function renderOddsBoard(){
  const el=$('odds-board-results');if(!el)return;
- document.querySelectorAll('[data-odds-tier]').forEach(b=>{const on=Number(b.dataset.oddsTier)===activeOddsTier;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
- const bounds=oddsIntervals[activeOddsTier];const offers=Array.isArray(oddsFeed?.offers)?oddsFeed.offers.filter(o=>validOffer(o,oddsFeed)&&o.decimal_odds>=bounds[0]&&o.decimal_odds<=bounds[1]):[];
- $('odds-board-date').textContent=oddsFeed?.date_uk===todayUK()?`Today · ${todayUK()} · prices checked within 10 minutes`:`Today · ${todayUK()}`;
- $('odds-board-count').textContent=`${offers.length} price-checked ${offers.length===1?'bet':'bets'}`;
- if(!offers.length){el.innerHTML=`<div class="value-empty"><strong>No verified bets around ${activeOddsTier.toFixed(2)} right now.</strong><p>EdgeCheck is waiting for fresh, permitted bookmaker-price data in this odds range. No prices or suggested combinations are invented.</p><a class="check-bookmaker" href="https://www.bet365.com/" rel="noopener noreferrer" target="_blank">Check bet365 markets ↗</a></div>`;return;}
- el.innerHTML=offers.map(o=>{const stamp=new Date(o.checked_at).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'});return `<article class="odds-offer"><div class="odds-offer-header"><div><span class="overline">${escapeHtml(o.game)}</span><h3>${escapeHtml(o.title||'Suggested bet builder')}</h3></div><strong class="bigodds">${o.decimal_odds.toFixed(2)}</strong></div><ul>${o.legs.map(l=>`<li>${escapeHtml(l)}</li>`).join('')}</ul><div class="odds-verified"><span>Price checked ${escapeHtml(stamp)} UK · ${escapeHtml(o.source_name)}</span><span>Reference: ${escapeHtml(o.source_reference)}</span></div><a class="check-bookmaker" href="${escapeHtml(safeBookmakerUrl(o.bet365_url))}" target="_blank" rel="noopener noreferrer">Check current price at bet365 ↗</a></article>`}).join('');
+ document.querySelectorAll('[data-odds-tier]').forEach(b=>{
+   const active=Number(b.dataset.oddsTier)===activeOddsTier;
+   b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+ });
+ const band=oddsIntervals[activeOddsTier];
+ const filtered=livePriceOffers.filter(q=>q.odds>=band[0]&&q.odds<=band[1]);
+ $('odds-board-date').textContent=livePriceChecked?'Prices checked '+new Date(livePriceChecked).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'})+' UK':'Live bookmaker prices · not yet checked';
+ $('odds-board-count').textContent=filtered.length+' quoted player props';
+ if(!filtered.length){
+  el.innerHTML='<div class="value-empty"><strong>No verified player-prop quotes around '+activeOddsTier.toFixed(2)+'</strong><p>'+escapeHtml(livePriceError||'The connected feed has not supplied prices in this range. The buttons filter actual single-bet prices, not bet-builder totals.')+'</p><button class="compare-btn" id="refresh-odds" type="button">Check prices again</button></div>';
+  return;
+ }
+ el.innerHTML=filtered.map(q=>{
+   const link=q.url?'<a class="check-bookmaker" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(q.url)+'">Open '+escapeHtml(q.link_type==='selection'?'selection':q.link_type==='market'?'market':'match')+' ↗</a>':'';
+   return '<article class="odds-offer"><div class="odds-offer-header"><div><span class="overline">'+escapeHtml(q.game)+'</span><h3>'+escapeHtml(q.player)+' · '+escapeHtml(q.label)+'</h3><small>'+escapeHtml(q.bookmaker)+' · Checked '+escapeHtml(new Date(q.checked_at).toLocaleTimeString('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'}))+' UK</small></div><strong class="bigodds">'+q.odds.toFixed(2)+'</strong></div>'+link+'</article>';
+ }).join('')+'<p class="no-picks">These are individual bookmaker prices, not pre-priced accumulators. All quotes may change.</p>';
 }
-async function loadOddsBoard(){try{const r=await fetch('/data/verified-odds.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('Odds not published');const j=await r.json();oddsFeed=j;}catch{oddsFeed=null;}renderOddsBoard();}
-document.querySelectorAll('[data-odds-tier]').forEach(b=>b.addEventListener('click',()=>{activeOddsTier=Number(b.dataset.oddsTier);renderOddsBoard()}));
-loadOddsBoard();
+document.querySelectorAll('[data-odds-tier]').forEach(b=>b.addEventListener('click',()=>{
+ activeOddsTier=Number(b.dataset.oddsTier);
+ if(!livePriceChecked)loadLiveOddsBoard();else renderOddsBoard();
+}));
+document.addEventListener('click',e=>{if(e.target.closest('#refresh-odds')){livePriceChecked=0;loadLiveOddsBoard();}});
+renderOddsBoard();
 
 
 // Compare exact quoted player props across available UK bookmakers.
