@@ -170,3 +170,9 @@ body[data-page="home"] .nav-dropdown-items [data-nav="home"],body[data-page="res
 .builder-game-filter select{display:block;width:100%;min-height:49px;margin-top:9px;padding:12px 42px 12px 15px;background:#102a34;border:1px solid #416070;border-radius:11px;color:#eaf9f5;font-weight:650;cursor:pointer}
 .builder-game-filter select:focus{outline:2px solid #6cffa9;outline-offset:2px}
 .builder-filter-hint{margin:8px 0 0;color:#9eb6be;font-size:12px;line-height:1.5}
+
+
+/* Live player-prop sorting */
+.prop-sort-control{max-width:350px;margin:13px 0 17px}
+.prop-sort-control select{display:block;width:100%;min-height:47px;margin-top:8px;padding:10px 13px;border:1px solid #416070;border-radius:10px;background:#102a34;color:#eaf9f5;cursor:pointer;font-weight:650}
+.prop-sort-control select:focus-visible{outline:2px solid #6cffa9;outline-offset:2px}
