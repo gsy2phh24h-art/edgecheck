@@ -123,3 +123,43 @@ body[data-page="home"] .nav-dropdown-items [data-nav="home"],body[data-page="res
 .match-accordion-body{padding-top:12px}
 .match-accordion>summary:focus-visible,.nav-dropdown>summary:focus-visible{outline:2px solid #6cffa9;outline-offset:2px}
 @media(max-width:600px){.nav-menu-wrap{padding:8px 14px}.nav-dropdown{max-width:none}.nav-dropdown>summary{min-height:46px}.nav-dropdown-label{font-size:11px}}
+
+
+/* Redesigned compact match dashboard, November 2026 */
+.gamepicks{padding:clamp(17px,3vw,30px)}
+.gamepicks .sectionhead{margin-bottom:9px}
+.gamepicks .value-intro{max-width:850px;color:#a5bbc3;line-height:1.6;margin:10px 0 17px}
+.gamepicks-toolbar{padding:12px 0;margin:0 0 14px;border-bottom:1px solid #2a424d;align-items:center}
+.picks-controls{display:flex;gap:16px;justify-content:space-between;align-items:center;margin:0 0 23px;flex-wrap:wrap}
+.gamepicks .risk-picker{display:inline-flex;gap:2px;padding:4px;margin:0;background:#0b1d26;border:1px solid #29434c;border-radius:12px}
+.gamepicks .risk-picker button{border:0;border-radius:9px;padding:11px 19px;background:transparent;color:#9bb3bb;font-size:13px;font-weight:750;transition:background .15s}
+.gamepicks .risk-picker button.active{background:#275443;color:#c7ffdf;box-shadow:0 1px 9px #0004}
+.gamepicks .fixture-count{font-size:12px;color:#a0b9be}
+.game-picks-list{display:block}
+.fixture-day{margin:0 0 27px}
+.fixture-day-title{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid #2a4650}
+.fixture-day-title h3{margin:0;font-size:16px;font-weight:750;color:#e7f6f5}
+.fixture-day-title>span{font-size:12px;color:#8da9b2}
+.fixture-day-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.fixture-day-grid .match-card{min-width:0;background:#102630;border:1px solid #2b4854;border-radius:13px;padding:0;overflow:hidden;transition:border-color .15s,background .15s}
+.fixture-day-grid .match-card:hover{border-color:#477965;background:#142e37}
+.fixture-day-grid .match-card[open]{border-color:#529476;background:#112b34}
+.fixture-day-grid .match-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:116px;padding:18px 19px}
+.fixture-team-block{min-width:0}
+.fixture-eyebrow{display:block;color:#80bba7;font-size:11px;font-weight:750;letter-spacing:.6px;margin-bottom:9px}
+.fixture-day-grid .match-head h3{display:flex;gap:6px;flex-direction:column;font-size:16px;line-height:1.24;font-weight:750;letter-spacing:-.2px;margin:0;color:#f0f9f7}
+.fixture-day-grid .match-head h3 span{display:block}
+.fixture-day-grid .match-head h3 .fixture-vs{color:#8ba8b2;font-size:11px;font-weight:500}
+.fixture-expand{display:flex;align-items:center;gap:6px;white-space:nowrap;font-weight:700;font-size:11px;color:#a6ecca}
+.match-accordion>summary .fixture-expand .match-chevron{font-size:19px;color:#88e9b5;margin-left:0}
+.match-accordion[open]>summary .fixture-expand .match-chevron{transform:rotate(180deg)}
+.fixture-day-grid .match-card[open] .match-head{border-bottom:1px solid #31515a}
+.fixture-day-grid .match-accordion-body{padding:8px 18px 19px}
+.fixture-day-grid .match-picks{margin-top:0;border-top:0}
+.fixture-day-grid .match-pick{gap:9px;flex-wrap:wrap}
+.fixture-day-grid .match-pick>div:first-child{flex:1;min-width:150px}
+.fixture-day-grid .pick-rate{font-size:15px}
+.fixture-day-grid .pick-add{margin-left:0;order:3}
+.fixture-day-grid .match-context{margin:14px 0}
+@media(max-width:760px){.fixture-day-grid{grid-template-columns:1fr}.fixture-day-grid .match-head{min-height:100px;padding:15px 16px}.fixture-day-grid .match-head h3{font-size:15px}.fixture-day-grid .match-accordion-body{padding:8px 14px 16px}}
+@media(max-width:480px){.gamepicks .risk-picker{display:flex;width:100%}.gamepicks .risk-picker button{flex:1}.gamepicks-toolbar{align-items:flex-start}.picks-controls{gap:10px;margin-bottom:18px}.fixture-day-title h3{font-size:14px}}
