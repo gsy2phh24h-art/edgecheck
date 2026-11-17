@@ -176,3 +176,29 @@ body[data-page="home"] .nav-dropdown-items [data-nav="home"],body[data-page="res
 .prop-sort-control{max-width:350px;margin:13px 0 17px}
 .prop-sort-control select{display:block;width:100%;min-height:47px;margin-top:8px;padding:10px 13px;border:1px solid #416070;border-radius:10px;background:#102a34;color:#eaf9f5;cursor:pointer;font-weight:650}
 .prop-sort-control select:focus-visible{outline:2px solid #6cffa9;outline-offset:2px}
+
+
+/* Three-sport EdgeCheck hub and upcoming fixture browsers */
+.sport-hub{margin:25px 0 37px}
+.sport-hub h2{font-size:clamp(25px,3.5vw,37px);margin:10px 0 19px;letter-spacing:-.8px}
+.sport-hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.sport-hub-card{display:flex;flex-direction:column;gap:12px;min-height:225px;padding:24px;border:1px solid #34505a;border-radius:16px;background:linear-gradient(130deg,#16333c,#10232d);color:#b9c9cd;text-decoration:none}
+.sport-hub-card:hover{border-color:#6cffa9;background:#183a3a}
+.sport-hub-emoji{font-size:31px}
+.sport-hub-card strong{color:#f1fbf8;font-size:23px}
+.sport-hub-card>span:not(.sport-hub-emoji){font-size:13px;line-height:1.55}
+.sport-hub-card small{color:#86e9bb;font-weight:650;margin-top:auto;font-size:11px}
+body[data-page="nba"] .site-nav [data-nav="nba"],body[data-page="football"] .site-nav [data-nav="football"]{border-bottom-color:#6cffa9;color:#b8ffda;background:#112b2c}
+.sport-fixtures{margin:20px 0 35px}
+.competition-filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 15px}
+.competition-filters button{border:1px solid #33505a;background:#102934;color:#c7d7dd;border-radius:9px;padding:11px 14px;font-size:12px;font-weight:750}
+.competition-filters button.active{color:#afffd7;border-color:#6cffa9;background:#1b493a}
+.sport-day{margin:23px 0}
+.sport-day h3{font-size:16px;color:#f1fbfa;padding-bottom:12px;border-bottom:1px solid #31505a;margin-bottom:12px}
+.sport-match-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.sport-match{padding:15px 18px;background:#122b35;border:1px solid #34525c;border-radius:12px;display:flex;flex-direction:column;gap:5px}
+.sport-match strong{font-size:14px;color:#ecf8f6}
+.sport-match-time{color:#8bdec0;font-size:11px;font-weight:700;margin-bottom:4px}
+.sport-match-at{color:#819ba6;font-size:11px}
+.sport-match small{margin-top:7px;color:#a5b9c0;font-size:11px}
+@media(max-width:780px){.sport-hub-grid{grid-template-columns:1fr}.sport-hub-card{min-height:160px}.sport-match-grid{grid-template-columns:1fr}}
